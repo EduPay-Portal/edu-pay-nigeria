@@ -129,7 +129,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -141,6 +141,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           description: error.message,
         });
         return { error };
+      }
+
+      // Fetch user role for redirect
+      if (data.user) {
+        setTimeout(async () => {
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', data.user.id)
+            .single();
+
+          if (roleData?.role) {
+            window.location.href = `/dashboard/${roleData.role}`;
+          }
+        }, 100);
       }
 
       toast({
