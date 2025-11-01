@@ -145,17 +145,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       // Fetch user role for redirect
       if (data.user) {
-        setTimeout(async () => {
-          const { data: roleData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', data.user.id)
-            .single();
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .maybeSingle();
 
-          if (roleData?.role) {
+        if (roleData?.role) {
+          setTimeout(() => {
             window.location.href = `/dashboard/${roleData.role}`;
-          }
-        }, 100);
+          }, 500);
+        } else {
+          console.error('No role found for user:', roleError);
+          toast({
+            variant: 'destructive',
+            title: 'Role not found',
+            description: 'Your account role is not set. Please contact support.',
+          });
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1000);
+        }
       }
 
       toast({
