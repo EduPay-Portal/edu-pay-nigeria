@@ -31,12 +31,6 @@ const Auth = () => {
     resolver: zodResolver(resetPasswordSchema),
   });
 
-  useEffect(() => {
-    if (user) {
-      navigate("/");
-    }
-  }, [user, navigate]);
-
   const onSignIn = async (data: SignInFormData) => {
     try {
       await signIn(data.email, data.password);
