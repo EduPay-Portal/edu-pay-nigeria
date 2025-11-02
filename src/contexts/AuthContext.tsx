@@ -145,18 +145,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       // Fetch user role for redirect
       if (data.user) {
+        console.log('🔍 DEBUG: Authenticated user ID:', data.user.id);
+        console.log('🔍 DEBUG: Querying user_roles table for user_id:', data.user.id);
+        
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', data.user.id)
           .maybeSingle();
 
+        console.log('🔍 DEBUG: Role query result:', { roleData, roleError });
+
         if (roleData?.role) {
+          console.log('✅ DEBUG: Role found! Redirecting to:', `/dashboard/${roleData.role}`);
           setTimeout(() => {
             window.location.href = `/dashboard/${roleData.role}`;
           }, 500);
         } else {
-          console.error('No role found for user:', roleError);
+          console.error('❌ DEBUG: No role found for user. Error:', roleError);
+          console.error('❌ DEBUG: RoleData received:', roleData);
           toast({
             variant: 'destructive',
             title: 'Role not found',
