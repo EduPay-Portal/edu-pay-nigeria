@@ -32,18 +32,10 @@ const Auth = () => {
   });
 
   const onSignIn = async (data: SignInFormData) => {
-    try {
-      await signIn(data.email, data.password);
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully signed in.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to sign in. Please check your credentials.",
-        variant: "destructive",
-      });
+    const { error } = await signIn(data.email, data.password);
+    // AuthContext handles all toasts and redirects
+    if (error) {
+      console.error('Sign in failed:', error);
     }
   };
 
