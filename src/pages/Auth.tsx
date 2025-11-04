@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,11 +14,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, signIn, signUp, resetPassword } = useAuth();
+  const { user, signIn, signUp, resetPassword, loading: authLoading } = useAuth();
+  const { data: role, isLoading: roleLoading } = useUserRole();
   const { toast } = useToast();
   const [isSignUp, setIsSignUp] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
+
+  // Handle post-confirmation redirect
+  useEffect(() => {
+    if (!authLoading && !roleLoading && user && role) {
+      navigate(`/dashboard/${role}`);
+    }
+  }, [user, role, authLoading, roleLoading, navigate]);
 
   const signInForm = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),

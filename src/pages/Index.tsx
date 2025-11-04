@@ -1,9 +1,33 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight, Shield, Zap, TrendingUp, Wallet, BarChart3, Bell } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useEffect } from "react";
 
 const Index = () => {
+  const { user, loading: authLoading } = useAuth();
+  const { data: role, isLoading: roleLoading } = useUserRole();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && !roleLoading && user && role) {
+      navigate(`/dashboard/${role}`);
+    }
+  }, [user, role, authLoading, roleLoading, navigate]);
+
+  if (authLoading || roleLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
       {/* Header */}
