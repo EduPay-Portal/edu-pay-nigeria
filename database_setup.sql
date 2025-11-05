@@ -136,10 +136,429 @@ CREATE TRIGGER set_updated_at
   EXECUTE FUNCTION public.handle_updated_at();
 
 -- =====================================================
+-- Additional Tables for EduPay Features
+-- =====================================================
+
+-- Create notification preference enum
+CREATE TYPE public.notification_preference AS ENUM ('sms', 'email', 'both');
+
+-- Create transaction enums
+CREATE TYPE public.transaction_type AS ENUM ('credit', 'debit');
+CREATE TYPE public.transaction_category AS ENUM ('fee_payment', 'wallet_topup', 'canteen', 'books', 'transport', 'other');
+CREATE TYPE public.transaction_status AS ENUM ('pending', 'completed', 'failed', 'reversed');
+
+-- Create wallets table
+CREATE TABLE public.wallets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  balance DECIMAL(10, 2) DEFAULT 0.00 CHECK (balance >= 0),
+  currency TEXT DEFAULT 'NGN',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+
+-- Enable RLS on wallets
+ALTER TABLE public.wallets ENABLE ROW LEVEL SECURITY;
+
+-- Create transactions table
+CREATE TABLE public.transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  wallet_id UUID REFERENCES public.wallets(id) ON DELETE CASCADE NOT NULL,
+  type public.transaction_type NOT NULL,
+  amount DECIMAL(10, 2) NOT NULL CHECK (amount > 0),
+  category public.transaction_category NOT NULL,
+  description TEXT,
+  reference TEXT UNIQUE NOT NULL,
+  status public.transaction_status DEFAULT 'pending',
+  metadata JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS on transactions
+ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
+
+-- Create student_profiles table
+CREATE TABLE public.student_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  admission_number TEXT UNIQUE NOT NULL,
+  class_level TEXT NOT NULL,
+  section TEXT,
+  parent_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+
+-- Enable RLS on student_profiles
+ALTER TABLE public.student_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Create parent_profiles table
+CREATE TABLE public.parent_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  occupation TEXT,
+  notification_preference public.notification_preference DEFAULT 'email',
+  emergency_contact TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+
+-- Enable RLS on parent_profiles
+ALTER TABLE public.parent_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Create admin_profiles table
+CREATE TABLE public.admin_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  department TEXT,
+  access_level INTEGER DEFAULT 1,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+
+-- Enable RLS on admin_profiles
+ALTER TABLE public.admin_profiles ENABLE ROW LEVEL SECURITY;
+
+-- =====================================================
+-- RLS Policies for Wallets
+-- =====================================================
+
+-- Users can read their own wallet
+CREATE POLICY "Users can read own wallet"
+  ON public.wallets
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- Admins can read all wallets
+CREATE POLICY "Admins can read all wallets"
+  ON public.wallets
+  FOR SELECT
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+-- Admins can update all wallets
+CREATE POLICY "Admins can update all wallets"
+  ON public.wallets
+  FOR UPDATE
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'))
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
+-- =====================================================
+-- RLS Policies for Transactions
+-- =====================================================
+
+-- Users can read their own transactions
+CREATE POLICY "Users can read own transactions"
+  ON public.transactions
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- Admins can read all transactions
+CREATE POLICY "Admins can read all transactions"
+  ON public.transactions
+  FOR SELECT
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+-- Admins can insert transactions
+CREATE POLICY "Admins can insert transactions"
+  ON public.transactions
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
+-- Admins can update transactions
+CREATE POLICY "Admins can update transactions"
+  ON public.transactions
+  FOR UPDATE
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'))
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
+-- Parents can read their children's transactions
+CREATE POLICY "Parents can read children transactions"
+  ON public.transactions
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.student_profiles sp
+      WHERE sp.user_id = transactions.user_id
+        AND sp.parent_id = auth.uid()
+    )
+  );
+
+-- =====================================================
+-- RLS Policies for Student Profiles
+-- =====================================================
+
+-- Students can read their own profile
+CREATE POLICY "Students can read own profile"
+  ON public.student_profiles
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- Admins can read all student profiles
+CREATE POLICY "Admins can read all student profiles"
+  ON public.student_profiles
+  FOR SELECT
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+-- Admins can insert student profiles
+CREATE POLICY "Admins can insert student profiles"
+  ON public.student_profiles
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
+-- Admins can update student profiles
+CREATE POLICY "Admins can update student profiles"
+  ON public.student_profiles
+  FOR UPDATE
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'))
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
+-- Parents can read their children's profiles
+CREATE POLICY "Parents can read children profiles"
+  ON public.student_profiles
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = parent_id);
+
+-- =====================================================
+-- RLS Policies for Parent Profiles
+-- =====================================================
+
+-- Parents can read their own profile
+CREATE POLICY "Parents can read own profile"
+  ON public.parent_profiles
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- Admins can read all parent profiles
+CREATE POLICY "Admins can read all parent profiles"
+  ON public.parent_profiles
+  FOR SELECT
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+-- Admins can insert parent profiles
+CREATE POLICY "Admins can insert parent profiles"
+  ON public.parent_profiles
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
+-- Admins can update parent profiles
+CREATE POLICY "Admins can update parent profiles"
+  ON public.parent_profiles
+  FOR UPDATE
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'))
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
+-- =====================================================
+-- RLS Policies for Admin Profiles
+-- =====================================================
+
+-- Admins can read their own profile
+CREATE POLICY "Admins can read own admin profile"
+  ON public.admin_profiles
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- Admins can read all admin profiles
+CREATE POLICY "Admins can read all admin profiles"
+  ON public.admin_profiles
+  FOR SELECT
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+-- Admins can update their own profile
+CREATE POLICY "Admins can update own admin profile"
+  ON public.admin_profiles
+  FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- =====================================================
+-- Functions and Triggers
+-- =====================================================
+
+-- Function to create wallet on user creation
+CREATE OR REPLACE FUNCTION public.create_user_wallet()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Only create wallet for students and parents
+  IF NEW.raw_user_meta_data->>'role' IN ('student', 'parent') THEN
+    INSERT INTO public.wallets (user_id, balance, currency)
+    VALUES (NEW.id, 0.00, 'NGN');
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+-- Trigger to create wallet on user signup
+CREATE TRIGGER on_user_wallet_creation
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.create_user_wallet();
+
+-- Function to create role-specific profile
+CREATE OR REPLACE FUNCTION public.create_role_profile()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Create student profile
+  IF NEW.role = 'student' THEN
+    INSERT INTO public.student_profiles (user_id, admission_number, class_level)
+    VALUES (
+      NEW.user_id,
+      'ADM-' || LPAD(nextval('student_admission_seq')::TEXT, 6, '0'),
+      'Not Assigned'
+    );
+  END IF;
+
+  -- Create parent profile
+  IF NEW.role = 'parent' THEN
+    INSERT INTO public.parent_profiles (user_id)
+    VALUES (NEW.user_id);
+  END IF;
+
+  -- Create admin profile
+  IF NEW.role = 'admin' THEN
+    INSERT INTO public.admin_profiles (user_id)
+    VALUES (NEW.user_id);
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+-- Create sequence for admission numbers
+CREATE SEQUENCE IF NOT EXISTS student_admission_seq START 1000;
+
+-- Trigger to create role-specific profile
+CREATE TRIGGER on_role_profile_creation
+  AFTER INSERT ON public.user_roles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.create_role_profile();
+
+-- Function to update wallet balance on transaction completion
+CREATE OR REPLACE FUNCTION public.update_wallet_balance()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Only update if transaction is being marked as completed
+  IF NEW.status = 'completed' AND (OLD.status IS NULL OR OLD.status != 'completed') THEN
+    IF NEW.type = 'credit' THEN
+      UPDATE public.wallets
+      SET balance = balance + NEW.amount,
+          updated_at = NOW()
+      WHERE id = NEW.wallet_id;
+    ELSIF NEW.type = 'debit' THEN
+      UPDATE public.wallets
+      SET balance = balance - NEW.amount,
+          updated_at = NOW()
+      WHERE id = NEW.wallet_id;
+    END IF;
+  END IF;
+
+  -- Handle reversal
+  IF NEW.status = 'reversed' AND OLD.status = 'completed' THEN
+    IF NEW.type = 'credit' THEN
+      UPDATE public.wallets
+      SET balance = balance - NEW.amount,
+          updated_at = NOW()
+      WHERE id = NEW.wallet_id;
+    ELSIF NEW.type = 'debit' THEN
+      UPDATE public.wallets
+      SET balance = balance + NEW.amount,
+          updated_at = NOW()
+      WHERE id = NEW.wallet_id;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+-- Trigger to update wallet balance
+CREATE TRIGGER on_transaction_wallet_update
+  AFTER INSERT OR UPDATE ON public.transactions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_wallet_balance();
+
+-- Function to generate transaction reference
+CREATE OR REPLACE FUNCTION public.generate_transaction_reference()
+RETURNS TEXT
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  ref TEXT;
+BEGIN
+  ref := 'TXN-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || LPAD(nextval('transaction_ref_seq')::TEXT, 6, '0');
+  RETURN ref;
+END;
+$$;
+
+-- Create sequence for transaction references
+CREATE SEQUENCE IF NOT EXISTS transaction_ref_seq START 1000;
+
+-- Trigger to set updated_at on student_profiles
+CREATE TRIGGER set_student_updated_at
+  BEFORE UPDATE ON public.student_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+-- Trigger to set updated_at on parent_profiles
+CREATE TRIGGER set_parent_updated_at
+  BEFORE UPDATE ON public.parent_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+-- Trigger to set updated_at on admin_profiles
+CREATE TRIGGER set_admin_updated_at
+  BEFORE UPDATE ON public.admin_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+-- Trigger to set updated_at on wallets
+CREATE TRIGGER set_wallet_updated_at
+  BEFORE UPDATE ON public.wallets
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_updated_at();
+
+-- =====================================================
 -- Setup Complete!
 -- =====================================================
 -- Next steps:
--- 1. Configure Auth URLs in Supabase Dashboard
--- 2. Add environment variables to your app
--- 3. Test signup/login flows
+-- 1. Run this script in Supabase SQL Editor
+-- 2. Configure Auth URLs in Supabase Dashboard
+-- 3. Add environment variables to your app
+-- 4. Test signup/login flows
 -- See SUPABASE_SETUP.md for detailed instructions
