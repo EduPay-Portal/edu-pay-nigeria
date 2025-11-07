@@ -1,13 +1,38 @@
 import { createClient } from '@supabase/supabase-js';
+import { env } from '@/lib/env';
 
-const supabaseUrl = 'https://fmajhzepqpnrzbtcdiix.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtYWpoemVwcXBucnpidGNkaWl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE1OTA0NzMsImV4cCI6MjA3NzE2NjQ3M30.ZKgWk7XUse_CRUUgDVwyZNBB-AO-rftkw4NjeKPRPFU';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storage: window.localStorage,
+    storageKey: 'edupay-auth-token',
+    flowType: 'pkce', // More secure PKCE auth flow
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'edupay-connect-web',
+    },
   },
 });
+
+// Session timeout management (24 hours of inactivity)
+const SESSION_TIMEOUT = 24 * 60 * 60 * 1000;
+let sessionTimeout: NodeJS.Timeout;
+
+export const resetSessionTimeout = () => {
+  if (sessionTimeout) clearTimeout(sessionTimeout);
+  
+  sessionTimeout = setTimeout(async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/auth?session=expired';
+  }, SESSION_TIMEOUT);
+};
+
+// Track user activity to reset session timeout
+if (typeof window !== 'undefined') {
+  ['mousedown', 'keydown', 'scroll', 'touchstart'].forEach((event) => {
+    document.addEventListener(event, resetSessionTimeout, { passive: true });
+  });
+}

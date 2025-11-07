@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { rateLimiter } from '@/lib/rateLimit';
+import { logger } from '@/lib/logger';
 import type { AppRole } from '@/types/auth';
 import { useToast } from '@/hooks/use-toast';
 
@@ -86,6 +88,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     role: AppRole
   ) => {
     try {
+      // Rate limiting check
+      const rateLimitCheck = rateLimiter.check(email, 'signup');
+      if (!rateLimitCheck.allowed) {
+        const message = `Too many signup attempts. Please try again in ${rateLimitCheck.retryAfter} seconds.`;
+        toast({
+          variant: 'destructive',
+          title: 'Rate limit exceeded',
+          description: message,
+        });
+        logger.warn('Signup rate limit exceeded', { email });
+        return { error: { message } as AuthError };
+      }
+
       const redirectUrl = `${window.location.origin}/auth`;
       
       const { error } = await supabase.auth.signUp({
@@ -107,8 +122,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           title: 'Sign up failed',
           description: error.message,
         });
+        logger.error('Signup failed', error, { email, role });
         return { error };
       }
+
+      // Success: reset rate limit
+      rateLimiter.reset(email, 'signup');
+      logger.info('User signed up successfully', { email, role });
 
       toast({
         title: 'Success!',
@@ -123,12 +143,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: 'Sign up failed',
         description: authError.message,
       });
+      logger.error('Signup exception', authError);
       return { error: authError };
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
+      // Rate limiting check
+      const rateLimitCheck = rateLimiter.check(email, 'login');
+      if (!rateLimitCheck.allowed) {
+        const message = `Too many login attempts. Please try again in ${rateLimitCheck.retryAfter} seconds.`;
+        toast({
+          variant: 'destructive',
+          title: 'Rate limit exceeded',
+          description: message,
+        });
+        logger.warn('Login rate limit exceeded', { email });
+        return { error: { message } as AuthError };
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -140,35 +174,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           title: 'Sign in failed',
           description: error.message,
         });
+        logger.error('Sign in failed', error, { email });
         return { error };
       }
 
-      // Fetch user role for redirect
+      // Success: reset rate limit
+      rateLimiter.reset(email, 'login');
+
+      // Fetch user role for redirect (without console.logs)
       if (data.user) {
-        console.log('🔍 DEBUG: Authenticated user ID:', data.user.id);
-        console.log('🔍 DEBUG: Querying user_roles table for user_id:', data.user.id);
-        
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', data.user.id)
           .maybeSingle();
 
-        console.log('🔍 DEBUG: Role query result:', { roleData, roleError });
-
         if (roleData?.role) {
-          console.log('✅ DEBUG: Role found! Redirecting to:', `/dashboard/${roleData.role}`);
+          logger.info('User signed in successfully', { 
+            userId: data.user.id, 
+            role: roleData.role 
+          });
+          
           setTimeout(() => {
             window.location.href = `/dashboard/${roleData.role}`;
           }, 500);
         } else {
-          console.error('❌ DEBUG: No role found for user. Error:', roleError);
-          console.error('❌ DEBUG: RoleData received:', roleData);
+          logger.error('Role not found for user', roleError, { 
+            userId: data.user.id 
+          });
+          
           toast({
             variant: 'destructive',
             title: 'Role not found',
             description: 'Your account role is not set. Please contact support.',
           });
+          
           setTimeout(() => {
             window.location.href = '/';
           }, 1000);
@@ -188,6 +228,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: 'Sign in failed',
         description: authError.message,
       });
+      logger.error('Sign in exception', authError);
       return { error: authError };
     }
   };
@@ -202,6 +243,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resetPassword = async (email: string) => {
     try {
+      // Rate limiting check
+      const rateLimitCheck = rateLimiter.check(email, 'resetPassword');
+      if (!rateLimitCheck.allowed) {
+        const message = `Too many reset attempts. Please try again in ${rateLimitCheck.retryAfter} seconds.`;
+        toast({
+          variant: 'destructive',
+          title: 'Rate limit exceeded',
+          description: message,
+        });
+        logger.warn('Password reset rate limit exceeded', { email });
+        return { error: { message } as AuthError };
+      }
+
       const redirectUrl = `${window.location.origin}/auth`;
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -214,8 +268,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           title: 'Password reset failed',
           description: error.message,
         });
+        logger.error('Password reset failed', error, { email });
         return { error };
       }
+
+      // Success: reset rate limit
+      rateLimiter.reset(email, 'resetPassword');
+      logger.info('Password reset email sent', { email });
 
       toast({
         title: 'Check your email',
@@ -225,6 +284,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return { error: null };
     } catch (error) {
       const authError = error as AuthError;
+      logger.error('Password reset exception', authError);
       return { error: authError };
     }
   };

@@ -554,8 +554,119 @@ CREATE TRIGGER set_wallet_updated_at
   EXECUTE FUNCTION public.handle_updated_at();
 
 -- =====================================================
+-- PHASE 0: CRITICAL SECURITY INDEXES & CONSTRAINTS
+-- =====================================================
+
+-- Profiles indexes
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_created_at ON public.profiles(created_at DESC);
+
+-- User roles indexes
+CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON public.user_roles(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_roles_role ON public.user_roles(role);
+
+-- Wallets indexes
+CREATE INDEX IF NOT EXISTS idx_wallets_user_id ON public.wallets(user_id);
+CREATE INDEX IF NOT EXISTS idx_wallets_balance ON public.wallets(balance DESC);
+
+-- Transactions indexes (CRITICAL for performance)
+CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON public.transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_wallet_id ON public.transactions(wallet_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_reference ON public.transactions(reference);
+CREATE INDEX IF NOT EXISTS idx_transactions_status ON public.transactions(status);
+CREATE INDEX IF NOT EXISTS idx_transactions_created_at ON public.transactions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_type_status ON public.transactions(type, status);
+CREATE INDEX IF NOT EXISTS idx_transactions_category ON public.transactions(category);
+
+-- Student profiles indexes
+CREATE INDEX IF NOT EXISTS idx_student_profiles_user_id ON public.student_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_student_profiles_parent_id ON public.student_profiles(parent_id);
+CREATE INDEX IF NOT EXISTS idx_student_profiles_admission ON public.student_profiles(admission_number);
+CREATE INDEX IF NOT EXISTS idx_student_profiles_class ON public.student_profiles(class_level);
+
+-- Parent profiles indexes
+CREATE INDEX IF NOT EXISTS idx_parent_profiles_user_id ON public.parent_profiles(user_id);
+
+-- Admin profiles indexes
+CREATE INDEX IF NOT EXISTS idx_admin_profiles_user_id ON public.admin_profiles(user_id);
+
+-- =====================================================
+-- IDEMPOTENCY FOR TRANSACTIONS (Prevent Duplicates)
+-- =====================================================
+
+-- Add idempotency_key column to transactions
+ALTER TABLE public.transactions 
+ADD COLUMN IF NOT EXISTS idempotency_key UUID UNIQUE;
+
+-- Create index on idempotency_key
+CREATE INDEX IF NOT EXISTS idx_transactions_idempotency ON public.transactions(idempotency_key);
+
+-- Function to prevent duplicate transactions
+CREATE OR REPLACE FUNCTION public.check_transaction_idempotency()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.idempotency_key IS NOT NULL THEN
+    IF EXISTS (
+      SELECT 1 FROM public.transactions 
+      WHERE idempotency_key = NEW.idempotency_key 
+        AND id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::uuid)
+    ) THEN
+      RAISE EXCEPTION 'Duplicate transaction detected. Idempotency key already used: %', NEW.idempotency_key;
+    END IF;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$;
+
+-- Trigger for idempotency check
+DROP TRIGGER IF EXISTS enforce_transaction_idempotency ON public.transactions;
+CREATE TRIGGER enforce_transaction_idempotency
+  BEFORE INSERT ON public.transactions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.check_transaction_idempotency();
+
+-- =====================================================
+-- BALANCE VALIDATION (Prevent Negative Balances)
+-- =====================================================
+
+-- Function to validate wallet balance never goes negative
+CREATE OR REPLACE FUNCTION public.validate_wallet_balance()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.balance < 0 THEN
+    RAISE EXCEPTION 'Insufficient funds. Wallet balance cannot be negative. Current balance: ₦%, Attempted balance: ₦%', 
+      OLD.balance, NEW.balance;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$;
+
+-- Trigger for balance validation
+DROP TRIGGER IF EXISTS check_wallet_balance_before_update ON public.wallets;
+CREATE TRIGGER check_wallet_balance_before_update
+  BEFORE UPDATE ON public.wallets
+  FOR EACH ROW
+  WHEN (NEW.balance IS DISTINCT FROM OLD.balance)
+  EXECUTE FUNCTION public.validate_wallet_balance();
+
+-- =====================================================
 -- Setup Complete!
 -- =====================================================
+-- Phase 0 Security Features Added:
+-- ✅ Performance indexes on all critical tables
+-- ✅ Idempotency enforcement for transactions
+-- ✅ Negative balance prevention
+-- 
 -- Next steps:
 -- 1. Run this script in Supabase SQL Editor
 -- 2. Configure Auth URLs in Supabase Dashboard
