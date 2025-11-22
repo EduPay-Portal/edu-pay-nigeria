@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.create-virtual-account]
 verify_jwt = true
+
+[functions.bulk-create-students]
+verify_jwt = true

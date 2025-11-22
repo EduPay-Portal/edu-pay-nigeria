@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, History, User, Settings, LogOut, Menu } from 'lucide-react';
+import { LayoutDashboard, Wallet, History, User, Settings, LogOut, Menu, Upload } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -48,6 +48,7 @@ const adminItems = [
   { title: 'Students', url: '/dashboard/admin/students', icon: User },
   { title: 'Parents', url: '/dashboard/admin/parents', icon: User },
   { title: 'Transactions', url: '/dashboard/admin/transactions', icon: History },
+  { title: 'Bulk Import', url: '/dashboard/admin/bulk-import', icon: Upload },
   { title: 'Settings', url: '/dashboard/admin/settings', icon: Settings },
 ];
 
