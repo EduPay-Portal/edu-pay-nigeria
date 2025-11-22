@@ -1,15 +1,21 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { TransactionTable } from '@/components/dashboard/TransactionTable';
 import { ProfileSection } from '@/components/dashboard/ProfileSection';
+import { VirtualAccountCard } from '@/components/dashboard/VirtualAccountCard';
+import { TopUpWalletDialog } from '@/components/dialogs/TopUpWalletDialog';
 import { Users, Wallet, TrendingUp, Activity } from 'lucide-react';
 
 export default function ParentDashboard() {
   const { user } = useAuth();
+  const [showTopUpDialog, setShowTopUpDialog] = useState(false);
+  const [selectedChild, setSelectedChild] = useState<{ id: string; name: string } | null>(null);
 
   const { data: children = [] } = useQuery({
     queryKey: ['children', user?.id],
@@ -117,8 +123,8 @@ export default function ParentDashboard() {
             ) : (
               children.map((child: any) => (
                 <Card key={child.id} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h3 className="font-bold text-lg">
                           {child.profiles?.first_name} {child.profiles?.last_name}
@@ -131,11 +137,26 @@ export default function ParentDashboard() {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-4 pt-4 border-t border-border">
+                    
+                    <VirtualAccountCard studentId={child.user_id} showCreateButton={false} />
+                    
+                    <div className="pt-4 border-t border-border">
                       <p className="text-sm text-muted-foreground">Wallet Balance</p>
                       <p className="text-2xl font-bold text-primary">
                         ₦{(child.wallets?.[0]?.balance || 0).toLocaleString('en-NG')}
                       </p>
+                      <Button 
+                        className="w-full mt-2"
+                        onClick={() => {
+                          setSelectedChild({
+                            id: child.user_id,
+                            name: `${child.profiles?.first_name} ${child.profiles?.last_name}`
+                          });
+                          setShowTopUpDialog(true);
+                        }}
+                      >
+                        Top Up Wallet
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -211,6 +232,13 @@ export default function ParentDashboard() {
           <ProfileSection />
         </TabsContent>
       </Tabs>
+
+      <TopUpWalletDialog 
+        open={showTopUpDialog} 
+        onOpenChange={setShowTopUpDialog}
+        studentId={selectedChild?.id}
+        studentName={selectedChild?.name}
+      />
     </div>
   );
 }

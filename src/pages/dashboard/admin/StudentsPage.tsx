@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { VirtualAccountStatus } from '@/components/admin/VirtualAccountStatus';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -143,6 +144,7 @@ export default function StudentsPage() {
                     <TableHead>Admission No.</TableHead>
                     <TableHead>Class</TableHead>
                     <TableHead>Parent</TableHead>
+                    <TableHead>Virtual Account</TableHead>
                     <TableHead>Wallet Balance</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -179,6 +181,9 @@ export default function StudentsPage() {
                           {parent ? `${parent.first_name} ${parent.last_name}` : (
                             <span className="text-muted-foreground">Not linked</span>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <VirtualAccountStatus studentId={profile?.id || student.user_id} />
                         </TableCell>
                         <TableCell className="font-semibold">
                           ₦{wallet?.balance?.toLocaleString() || '0'}

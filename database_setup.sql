@@ -673,3 +673,40 @@ CREATE TRIGGER check_wallet_balance_before_update
 -- 3. Add environment variables to your app
 -- 4. Test signup/login flows
 -- See SUPABASE_SETUP.md for detailed instructions
+
+-- =====================================================
+-- PAYSTACK VIRTUAL ACCOUNTS AUTO-CREATION
+-- =====================================================
+-- Note: This trigger creates virtual accounts for students
+-- The actual API call to Paystack happens via the Edge Function
+-- which needs to be called manually or via a background job
+
+-- Function to trigger virtual account creation (placeholder for future enhancement)
+CREATE OR REPLACE FUNCTION public.trigger_create_virtual_account()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- TODO: In production, this should call the Edge Function via pg_net
+  -- For now, virtual accounts must be created manually via the UI
+  -- or triggered by the application after student registration
+  
+  -- Log the need for virtual account creation
+  RAISE NOTICE 'Student profile created for user_id: %. Virtual account creation required.', NEW.user_id;
+  
+  RETURN NEW;
+END;
+$$;
+
+-- Trigger to log virtual account creation need
+DROP TRIGGER IF EXISTS on_student_profile_created ON public.student_profiles;
+CREATE TRIGGER on_student_profile_created
+  AFTER INSERT ON public.student_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.trigger_create_virtual_account();
+
+-- =====================================================
+-- Setup Complete!
+-- =====================================================
