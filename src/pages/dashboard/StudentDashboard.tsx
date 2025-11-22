@@ -1,9 +1,14 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 import { WalletCard } from '@/components/dashboard/WalletCard';
 import { TransactionTable } from '@/components/dashboard/TransactionTable';
 import { StatCard } from '@/components/dashboard/StatCard';
+import { VirtualAccountCard } from '@/components/dashboard/VirtualAccountCard';
+import { PaymentInstructions } from '@/components/dashboard/PaymentInstructions';
+import { TopUpWalletDialog } from '@/components/dialogs/TopUpWalletDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TransactionPieChart } from '@/components/dashboard/charts/TransactionPieChart';
@@ -12,6 +17,7 @@ import { TrendingUp, CreditCard, History, Activity } from 'lucide-react';
 
 export default function StudentDashboard() {
   const { user } = useAuth();
+  const [showTopUpDialog, setShowTopUpDialog] = useState(false);
 
   const { data: wallet } = useQuery({
     queryKey: ['wallet', user?.id],
@@ -56,9 +62,19 @@ export default function StudentDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Student Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back! Manage your wallet and transactions.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Student Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back! Manage your wallet and transactions.</p>
+        </div>
+        <Button onClick={() => setShowTopUpDialog(true)}>
+          Top Up Wallet
+        </Button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <VirtualAccountCard />
+        <PaymentInstructions />
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -141,6 +157,11 @@ export default function StudentDashboard() {
           <ProfileSection />
         </TabsContent>
       </Tabs>
+
+      <TopUpWalletDialog 
+        open={showTopUpDialog} 
+        onOpenChange={setShowTopUpDialog}
+      />
     </div>
   );
 }
