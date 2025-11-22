@@ -17,6 +17,7 @@ import StudentsPage from "./pages/dashboard/admin/StudentsPage";
 import ParentsPage from "./pages/dashboard/admin/ParentsPage";
 import TransactionsPage from "./pages/dashboard/admin/TransactionsPage";
 import SettingsPage from "./pages/dashboard/admin/SettingsPage";
+import BulkImportPage from "./pages/dashboard/admin/BulkImportPage";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const App = () => (
                 <Route path="admin/students" element={<ProtectedRoute allowedRoles={['admin']}><StudentsPage /></ProtectedRoute>} />
                 <Route path="admin/parents" element={<ProtectedRoute allowedRoles={['admin']}><ParentsPage /></ProtectedRoute>} />
                 <Route path="admin/transactions" element={<ProtectedRoute allowedRoles={['admin']}><TransactionsPage /></ProtectedRoute>} />
+                <Route path="admin/bulk-import" element={<ProtectedRoute allowedRoles={['admin']}><BulkImportPage /></ProtectedRoute>} />
                 <Route path="admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><SettingsPage /></ProtectedRoute>} />
               </Route>
 

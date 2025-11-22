@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, UserPlus, Download, Filter, Users, UserCheck, Wallet, TrendingUp } from 'lucide-react';
+import { Search, UserPlus, Download, Filter, Users, UserCheck, Wallet, TrendingUp, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
 
@@ -22,17 +22,17 @@ export default function StudentsPage() {
         .from('student_profiles')
         .select(`
           *,
-          profiles:user_id (
+          profiles!student_profiles_user_id_fkey (
             id,
             first_name,
             last_name,
             email
           ),
-          wallets:user_id (
+          wallets!wallets_user_id_fkey (
             balance,
             currency
           ),
-          parent:parent_id (
+          parent_profile:parent_id (
             first_name,
             last_name
           )
@@ -143,9 +143,11 @@ export default function StudentsPage() {
                     <TableHead>Student</TableHead>
                     <TableHead>Admission No.</TableHead>
                     <TableHead>Class</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Parent</TableHead>
                     <TableHead>Virtual Account</TableHead>
                     <TableHead>Wallet Balance</TableHead>
+                    <TableHead>Debt</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -154,7 +156,7 @@ export default function StudentsPage() {
                   {filteredStudents.map((student) => {
                     const profile = Array.isArray(student.profiles) ? student.profiles[0] : student.profiles;
                     const wallet = Array.isArray(student.wallets) ? student.wallets[0] : student.wallets;
-                    const parent = Array.isArray(student.parent) ? student.parent[0] : student.parent;
+                    const parent = Array.isArray(student.parent_profile) ? student.parent_profile[0] : student.parent_profile;
 
                     return (
                       <TableRow key={student.id}>
@@ -178,6 +180,19 @@ export default function StudentsPage() {
                           <Badge variant="outline">{student.class_level}</Badge>
                         </TableCell>
                         <TableCell>
+                          <div className="flex gap-1">
+                            {student.is_member && (
+                              <Badge variant="secondary" className="text-xs">Member</Badge>
+                            )}
+                            {student.is_boarder && (
+                              <Badge variant="default" className="text-xs">Boarder</Badge>
+                            )}
+                            {!student.is_member && !student.is_boarder && (
+                              <Badge variant="outline" className="text-xs">Day</Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
                           {parent ? `${parent.first_name} ${parent.last_name}` : (
                             <span className="text-muted-foreground">Not linked</span>
                           )}
@@ -187,6 +202,16 @@ export default function StudentsPage() {
                         </TableCell>
                         <TableCell className="font-semibold">
                           ₦{wallet?.balance?.toLocaleString() || '0'}
+                        </TableCell>
+                        <TableCell>
+                          {student.debt && student.debt > 0 ? (
+                            <div className="flex items-center gap-1 text-destructive font-semibold">
+                              <ShieldAlert className="h-3 w-3" />
+                              ₦{student.debt.toLocaleString()}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge variant="default" className="bg-green-500">Active</Badge>

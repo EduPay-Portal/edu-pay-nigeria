@@ -1,0 +1,246 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { FileUp, Play, AlertCircle, CheckCircle, Clock, Users, Loader2 } from 'lucide-react';
+import { StatCard } from '@/components/dashboard/StatCard';
+import { toast } from 'sonner';
+
+interface StagingRecord {
+  id: string;
+  sn: number;
+  names: string;
+  surname: string;
+  class_level: string;
+  reg_no: string;
+  parent_name: string;
+  parent_email: string;
+  parent_phone: string;
+  debt: number;
+  is_member: boolean;
+  is_boarder: boolean;
+  student_uuid: string | null;
+  parent_uuid: string | null;
+  processed: boolean;
+  processing_error: string | null;
+  imported_at: string;
+}
+
+export default function BulkImportPage() {
+  const queryClient = useQueryClient();
+
+  // Fetch staging records
+  const { data: stagingRecords, isLoading } = useQuery({
+    queryKey: ['bulk-import-staging'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('students_import_staging')
+        .select('*')
+        .order('sn', { ascending: true });
+
+      if (error) throw error;
+      return data as StagingRecord[];
+    },
+  });
+
+  // Fetch stats
+  const { data: stats } = useQuery({
+    queryKey: ['bulk-import-stats'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_import_staging_stats');
+      if (error) throw error;
+      return data[0];
+    },
+  });
+
+  // Process all pending mutation
+  const processAllMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('bulk-create-students', {
+        body: { mode: 'all' },
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success(`Processed ${data.success_count} students successfully!`);
+      if (data.error_count > 0) {
+        toast.warning(`${data.error_count} students failed to process.`);
+      }
+      queryClient.invalidateQueries({ queryKey: ['bulk-import-staging'] });
+      queryClient.invalidateQueries({ queryKey: ['bulk-import-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-students'] });
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to process: ${error.message}`);
+    },
+  });
+
+  const totalRecords = stats?.total_records || 0;
+  const processedRecords = stats?.processed_records || 0;
+  const pendingRecords = stats?.pending_records || 0;
+  const errorRecords = stats?.error_records || 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold">Bulk Import Management</h1>
+        <p className="text-muted-foreground">Monitor and process student import batches</p>
+      </div>
+
+      {/* Statistics */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Total Records"
+          value={totalRecords.toString()}
+          icon={FileUp}
+        />
+        <StatCard
+          title="Processed"
+          value={processedRecords.toString()}
+          icon={CheckCircle}
+        />
+        <StatCard
+          title="Pending"
+          value={pendingRecords.toString()}
+          icon={Clock}
+        />
+        <StatCard
+          title="Errors"
+          value={errorRecords.toString()}
+          icon={AlertCircle}
+        />
+      </div>
+
+      {/* Actions Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <CardTitle>Process Import Batch</CardTitle>
+              <CardDescription>
+                Create user accounts and profiles from staging data
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => processAllMutation.mutate()}
+                disabled={processAllMutation.isPending || pendingRecords === 0}
+                size="sm"
+              >
+                {processAllMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Process All Pending ({pendingRecords})
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Staging Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Staging Records</CardTitle>
+          <CardDescription>Preview of imported student data</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading staging data...</div>
+          ) : stagingRecords && stagingRecords.length > 0 ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>SN</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Class</TableHead>
+                    <TableHead>Reg No</TableHead>
+                    <TableHead>Parent</TableHead>
+                    <TableHead>Debt</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stagingRecords.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell className="font-mono text-sm">{record.sn}</TableCell>
+                      <TableCell>
+                        <div className="font-medium">
+                          {record.surname}, {record.names}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{record.class_level}</Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">{record.reg_no}</TableCell>
+                      <TableCell>
+                        <div className="text-sm">{record.parent_name}</div>
+                        <div className="text-xs text-muted-foreground">{record.parent_email}</div>
+                      </TableCell>
+                      <TableCell>
+                        {record.debt > 0 ? (
+                          <span className="text-destructive font-semibold">
+                            ₦{record.debt.toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
+                          {record.is_member && (
+                            <Badge variant="secondary" className="text-xs">Member</Badge>
+                          )}
+                          {record.is_boarder && (
+                            <Badge variant="default" className="text-xs">Boarder</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {record.processing_error ? (
+                          <Badge variant="destructive" className="gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            Error
+                          </Badge>
+                        ) : record.processed && record.student_uuid ? (
+                          <Badge variant="default" className="bg-green-500 gap-1">
+                            <CheckCircle className="h-3 w-3" />
+                            Done
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="gap-1">
+                            <Clock className="h-3 w-3" />
+                            Pending
+                          </Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No staging records found.</p>
+              <p className="text-sm">Import a CSV file to get started.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
