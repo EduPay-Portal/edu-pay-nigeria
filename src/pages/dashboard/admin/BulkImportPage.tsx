@@ -10,17 +10,16 @@ import { toast } from 'sonner';
 
 interface StagingRecord {
   id: string;
-  sn: number;
-  names: string;
-  surname: string;
-  class_level: string;
-  reg_no: string;
+  "SN": number;
+  "NAMES": string;
+  "SURNAME": string;
+  "CLASS": string;
+  "REG NO": string;
+  "MEMBER/NMEMBER": string;
+  "DAY/BOARDER": string;
+  "DEBTS": number;
   parent_name: string;
   parent_email: string;
-  parent_phone: string;
-  debt: number;
-  is_member: boolean;
-  is_boarder: boolean;
   student_uuid: string | null;
   parent_uuid: string | null;
   processed: boolean;
@@ -174,26 +173,31 @@ export default function BulkImportPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {stagingRecords.map((record) => (
+                  {stagingRecords.map((record) => {
+                    const debt = record["DEBTS"] || 0;
+                    const isMember = record["MEMBER/NMEMBER"] === "MEMBER";
+                    const isBoarder = record["DAY/BOARDER"] === "BOARDER";
+                    
+                    return (
                     <TableRow key={record.id}>
-                      <TableCell className="font-mono text-sm">{record.sn}</TableCell>
+                      <TableCell className="font-mono text-sm">{record["SN"]}</TableCell>
                       <TableCell>
                         <div className="font-medium">
-                          {record.surname}, {record.names}
+                          {record["SURNAME"]}, {record["NAMES"]}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{record.class_level}</Badge>
+                        <Badge variant="outline">{record["CLASS"]}</Badge>
                       </TableCell>
-                      <TableCell className="font-mono text-sm">{record.reg_no}</TableCell>
+                      <TableCell className="font-mono text-sm">{record["REG NO"]}</TableCell>
                       <TableCell>
-                        <div className="text-sm">{record.parent_name}</div>
-                        <div className="text-xs text-muted-foreground">{record.parent_email}</div>
+                        <div className="text-sm">{record.parent_name || "—"}</div>
+                        <div className="text-xs text-muted-foreground">{record.parent_email || "—"}</div>
                       </TableCell>
                       <TableCell>
-                        {record.debt > 0 ? (
+                        {debt > 0 ? (
                           <span className="text-destructive font-semibold">
-                            ₦{record.debt.toLocaleString()}
+                            ₦{debt.toLocaleString()}
                           </span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
@@ -201,10 +205,10 @@ export default function BulkImportPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1 flex-wrap">
-                          {record.is_member && (
+                          {isMember && (
                             <Badge variant="secondary" className="text-xs">Member</Badge>
                           )}
-                          {record.is_boarder && (
+                          {isBoarder && (
                             <Badge variant="default" className="text-xs">Boarder</Badge>
                           )}
                         </div>
@@ -228,7 +232,8 @@ export default function BulkImportPage() {
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

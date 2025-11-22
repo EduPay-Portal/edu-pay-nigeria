@@ -18,7 +18,8 @@ export default function StudentsPage() {
   const { data: students, isLoading } = useQuery({
     queryKey: ['admin-students'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch student profiles
+      const { data: studentData, error: studentError } = await supabase
         .from('student_profiles')
         .select(`
           *,
@@ -28,18 +29,29 @@ export default function StudentsPage() {
             last_name,
             email
           ),
-          wallets!wallets_user_id_fkey (
-            balance,
-            currency
-          ),
           parent_profile:parent_id (
             first_name,
             last_name
           )
         `);
 
-      if (error) throw error;
-      return data;
+      if (studentError) throw studentError;
+      if (!studentData) return [];
+
+      // Fetch wallets separately
+      const userIds = studentData.map(s => s.user_id);
+      const { data: walletData, error: walletError } = await supabase
+        .from('wallets')
+        .select('user_id, balance, currency')
+        .in('user_id', userIds);
+
+      if (walletError) throw walletError;
+
+      // Merge wallets with students
+      return studentData.map(student => ({
+        ...student,
+        wallets: walletData?.find(w => w.user_id === student.user_id)
+      }));
     },
   });
 

@@ -8,18 +8,21 @@ const corsHeaders = {
 
 interface StagingRecord {
   id: string;
-  sn: number;
-  names: string;
-  surname: string;
-  class_level: string;
-  reg_no: string;
+  "SN": number;
+  "NAMES": string;
+  "SURNAME": string;
+  "CLASS": string;
+  "REG NO": string;
+  "MEMBER/NMEMBER": string;
+  "DAY/BOARDER": string;
+  "DEBTS": number;
   parent_name: string;
   parent_email: string;
   parent_phone: string;
-  debt: number;
-  is_member: boolean;
-  is_boarder: boolean;
   import_batch_id: string;
+  processed: boolean;
+  student_uuid?: string;
+  parent_uuid?: string;
 }
 
 serve(async (req) => {
@@ -81,7 +84,16 @@ serve(async (req) => {
 
     for (const record of stagingRecords as StagingRecord[]) {
       try {
-        console.log(`Processing SN ${record.sn}: ${record.surname}, ${record.names}`);
+        const sn = record["SN"];
+        const names = record["NAMES"];
+        const surname = record["SURNAME"];
+        const classLevel = record["CLASS"];
+        const regNo = record["REG NO"];
+        const debt = record["DEBTS"] || 0;
+        const isMember = record["MEMBER/NMEMBER"] === "MEMBER";
+        const isBoarder = record["DAY/BOARDER"] === "BOARDER";
+        
+        console.log(`Processing SN ${sn}: ${surname}, ${names}`);
 
         // Step 1: Check or create parent account
         let parentUserId: string | null = null;
@@ -146,9 +158,9 @@ serve(async (req) => {
         }
 
         // Step 2: Create student account
-        const studentFirstName = record.names;
-        const studentLastName = record.surname;
-        const studentEmail = `${record.reg_no.toLowerCase()}@edupay.school`.replace(/\s+/g, '');
+        const studentFirstName = names;
+        const studentLastName = surname;
+        const studentEmail = `${regNo.toLowerCase()}@edupay.school`.replace(/\s+/g, '');
         const studentPassword = `Student${Math.random().toString(36).slice(2, 10)}!`;
 
         const { data: studentAuth, error: studentAuthError } = await supabaseAdmin.auth.admin.createUser({
@@ -174,15 +186,15 @@ serve(async (req) => {
         const { error: profileUpdateError } = await supabaseAdmin
           .from('student_profiles')
           .update({
-            admission_number: record.reg_no,
-            class_level: record.class_level,
+            admission_number: regNo,
+            class_level: classLevel,
             parent_id: parentUserId,
             created_from_import: true,
             import_batch_id: record.import_batch_id,
-            debt: record.debt,
-            is_member: record.is_member,
-            is_boarder: record.is_boarder,
-            import_notes: `Imported from bulk upload. SN: ${record.sn}`,
+            debt: debt,
+            is_member: isMember,
+            is_boarder: isBoarder,
+            import_notes: `Imported from bulk upload. SN: ${sn}`,
           })
           .eq('user_id', studentUserId);
 
@@ -192,7 +204,7 @@ serve(async (req) => {
         }
 
         // Step 4: Create debt transaction if applicable
-        if (record.debt && record.debt > 0) {
+        if (debt && debt > 0) {
           const { data: wallet } = await supabaseAdmin
             .from('wallets')
             .select('id')
@@ -206,18 +218,18 @@ serve(async (req) => {
                 user_id: studentUserId,
                 wallet_id: wallet.id,
                 type: 'debit',
-                amount: record.debt,
+                amount: debt,
                 category: 'fee_payment',
-                description: `Outstanding debt from import - SN ${record.sn}`,
-                reference: `DEBT-${record.reg_no}-${Date.now()}`,
+                description: `Outstanding debt from import - SN ${sn}`,
+                reference: `DEBT-${regNo}-${Date.now()}`,
                 status: 'pending',
                 metadata: {
                   import_batch_id: record.import_batch_id,
-                  sn: record.sn,
+                  sn: sn,
                 },
               });
             
-            console.log(`  Created debt transaction: ₦${record.debt}`);
+            console.log(`  Created debt transaction: ₦${debt}`);
           }
         }
 
@@ -235,16 +247,17 @@ serve(async (req) => {
 
         results.success_count++;
         results.created_students.push({
-          sn: record.sn,
+          sn: sn,
           student_id: studentUserId,
           email: studentEmail,
           password: studentPassword,
         });
 
-        console.log(`  ✓ Successfully processed SN ${record.sn}`);
+        console.log(`  ✓ Successfully processed SN ${sn}`);
 
       } catch (error) {
-        console.error(`  ✗ Error processing SN ${record.sn}:`, error);
+        const sn = record["SN"];
+        console.error(`  ✗ Error processing SN ${sn}:`, error);
         
         // Mark as error in staging
         await supabaseAdmin
@@ -257,7 +270,7 @@ serve(async (req) => {
 
         results.error_count++;
         results.errors.push({
-          sn: record.sn,
+          sn: sn,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
