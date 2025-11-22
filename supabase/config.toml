@@ -1,0 +1,7 @@
+project_id = "fmajhzepqpnrzbtcdiix"
+
+[functions.paystack-webhook]
+verify_jwt = false
+
+[functions.create-virtual-account]
+verify_jwt = true
