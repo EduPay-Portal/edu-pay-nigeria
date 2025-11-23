@@ -193,13 +193,13 @@ export default function StudentsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            {student.is_member && (
+                            {student.membership_status === 'MEMBER' && (
                               <Badge variant="secondary" className="text-xs">Member</Badge>
                             )}
-                            {student.is_boarder && (
+                            {student.boarding_status === 'BOARDER' && (
                               <Badge variant="default" className="text-xs">Boarder</Badge>
                             )}
-                            {!student.is_member && !student.is_boarder && (
+                            {student.boarding_status === 'DAY' && (
                               <Badge variant="outline" className="text-xs">Day</Badge>
                             )}
                           </div>
@@ -216,10 +216,10 @@ export default function StudentsPage() {
                           ₦{wallet?.balance?.toLocaleString() || '0'}
                         </TableCell>
                         <TableCell>
-                          {student.debt && student.debt > 0 ? (
+                          {student.debt_balance && student.debt_balance > 0 ? (
                             <div className="flex items-center gap-1 text-destructive font-semibold">
                               <ShieldAlert className="h-3 w-3" />
-                              ₦{student.debt.toLocaleString()}
+                              ₦{student.debt_balance.toLocaleString()}
                             </div>
                           ) : (
                             <span className="text-muted-foreground">—</span>
