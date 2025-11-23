@@ -9,22 +9,21 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { toast } from 'sonner';
 
 interface StagingRecord {
-  id: string;
-  "SN": number;
+  "SN": string;
   "NAMES": string;
   "SURNAME": string;
   "CLASS": string;
   "REG NO": string;
   "MEMBER/NMEMBER": string;
   "DAY/BOARDER": string;
-  "DEBTS": number;
-  parent_name: string;
+  "SCHOOL FEES": string;
+  "DEBTS": string;
   parent_email: string;
-  student_uuid: string | null;
-  parent_uuid: string | null;
+  parent_id?: string;
+  student_id?: string;
   processed: boolean;
-  processing_error: string | null;
-  imported_at: string;
+  error_message?: string;
+  created_at: string;
 }
 
 export default function BulkImportPage() {
@@ -37,7 +36,7 @@ export default function BulkImportPage() {
       const { data, error } = await supabase
         .from('students_import_staging')
         .select('*')
-        .order('sn', { ascending: true });
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
       return data as StagingRecord[];
@@ -173,13 +172,14 @@ export default function BulkImportPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {stagingRecords.map((record) => {
-                    const debt = record["DEBTS"] || 0;
+                  {stagingRecords.map((record, index) => {
+                    const debt = parseFloat(record["DEBTS"] || "0") || 0;
                     const isMember = record["MEMBER/NMEMBER"] === "MEMBER";
                     const isBoarder = record["DAY/BOARDER"] === "BOARDER";
+                    const parentName = `${record["SURNAME"]} Family`;
                     
                     return (
-                    <TableRow key={record.id}>
+                    <TableRow key={index}>
                       <TableCell className="font-mono text-sm">{record["SN"]}</TableCell>
                       <TableCell>
                         <div className="font-medium">
@@ -191,7 +191,7 @@ export default function BulkImportPage() {
                       </TableCell>
                       <TableCell className="font-mono text-sm">{record["REG NO"]}</TableCell>
                       <TableCell>
-                        <div className="text-sm">{record.parent_name || "—"}</div>
+                        <div className="text-sm">{parentName}</div>
                         <div className="text-xs text-muted-foreground">{record.parent_email || "—"}</div>
                       </TableCell>
                       <TableCell>
@@ -214,12 +214,12 @@ export default function BulkImportPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {record.processing_error ? (
+                        {record.error_message ? (
                           <Badge variant="destructive" className="gap-1">
                             <AlertCircle className="h-3 w-3" />
                             Error
                           </Badge>
-                        ) : record.processed && record.student_uuid ? (
+                        ) : record.processed && record.student_id ? (
                           <Badge variant="default" className="bg-green-500 gap-1">
                             <CheckCircle className="h-3 w-3" />
                             Done

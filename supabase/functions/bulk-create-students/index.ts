@@ -7,22 +7,21 @@ const corsHeaders = {
 };
 
 interface StagingRecord {
-  id: string;
-  "SN": number;
+  "SN": string;
   "NAMES": string;
   "SURNAME": string;
   "CLASS": string;
   "REG NO": string;
   "MEMBER/NMEMBER": string;
   "DAY/BOARDER": string;
-  "DEBTS": number;
-  parent_name: string;
+  "SCHOOL FEES": string;
+  "DEBTS": string;
   parent_email: string;
-  parent_phone: string;
-  import_batch_id: string;
+  parent_id?: string;
+  student_id?: string;
   processed: boolean;
-  student_uuid?: string;
-  parent_uuid?: string;
+  error_message?: string;
+  created_at: string;
 }
 
 serve(async (req) => {
@@ -52,7 +51,7 @@ serve(async (req) => {
       .from('students_import_staging')
       .select('*')
       .eq('processed', false)
-      .order('sn', { ascending: true });
+      .order('created_at', { ascending: true });
 
     if (fetchError) {
       console.error('Error fetching staging records:', fetchError);
@@ -75,8 +74,8 @@ serve(async (req) => {
     const results = {
       success_count: 0,
       error_count: 0,
-      errors: [] as Array<{ sn: number; error: string }>,
-      created_students: [] as Array<{ sn: number; student_id: string; email: string; password: string }>,
+      errors: [] as Array<{ sn: string; error: string }>,
+      created_students: [] as Array<{ sn: string; student_id: string; email: string; password: string }>,
     };
 
     // Track created parents to avoid duplicates
@@ -89,9 +88,14 @@ serve(async (req) => {
         const surname = record["SURNAME"];
         const classLevel = record["CLASS"];
         const regNo = record["REG NO"];
-        const debt = record["DEBTS"] || 0;
-        const isMember = record["MEMBER/NMEMBER"] === "MEMBER";
-        const isBoarder = record["DAY/BOARDER"] === "BOARDER";
+        const schoolFees = parseFloat(record["SCHOOL FEES"] || "0") || 0;
+        const debt = parseFloat(record["DEBTS"] || "0") || 0;
+        const membershipStatus = record["MEMBER/NMEMBER"] === "MEMBER" ? "MEMBER" : "NON_MEMBER";
+        const boardingStatus = record["DAY/BOARDER"] === "BOARDER" ? "BOARDER" : "DAY";
+        
+        // Derive parent fields from surname
+        const parentName = `${surname} Family`;
+        const parentPhone = "08000000000"; // Placeholder
         
         console.log(`Processing SN ${sn}: ${surname}, ${names}`);
 
@@ -119,7 +123,7 @@ serve(async (req) => {
               console.log(`  Found existing parent: ${record.parent_email}`);
             } else {
               // Create parent account
-              const parentNames = record.parent_name.split(' ');
+              const parentNames = parentName.split(' ');
               const parentFirstName = parentNames[0];
               const parentLastName = parentNames.slice(1).join(' ') || parentFirstName;
               const parentPassword = `Parent${Math.random().toString(36).slice(2, 10)}!`;
@@ -143,12 +147,11 @@ serve(async (req) => {
               parentUserId = parentAuth.user.id;
               parentCache.set(record.parent_email.toLowerCase(), parentUserId);
 
-              // Update parent profile with import flag
+              // Update parent profile with emergency contact
               await supabaseAdmin
                 .from('parent_profiles')
                 .update({ 
-                  created_from_import: true,
-                  emergency_contact: record.parent_phone,
+                  emergency_contact: parentPhone,
                 })
                 .eq('user_id', parentUserId);
 
@@ -189,12 +192,11 @@ serve(async (req) => {
             admission_number: regNo,
             class_level: classLevel,
             parent_id: parentUserId,
-            created_from_import: true,
-            import_batch_id: record.import_batch_id,
-            debt: debt,
-            is_member: isMember,
-            is_boarder: isBoarder,
-            import_notes: `Imported from bulk upload. SN: ${sn}`,
+            registration_number: regNo,
+            school_fees: schoolFees,
+            debt_balance: debt,
+            membership_status: membershipStatus,
+            boarding_status: boardingStatus,
           })
           .eq('user_id', studentUserId);
 
@@ -224,8 +226,8 @@ serve(async (req) => {
                 reference: `DEBT-${regNo}-${Date.now()}`,
                 status: 'pending',
                 metadata: {
-                  import_batch_id: record.import_batch_id,
                   sn: sn,
+                  source: 'bulk_import',
                 },
               });
             
@@ -238,12 +240,11 @@ serve(async (req) => {
           .from('students_import_staging')
           .update({
             processed: true,
-            student_uuid: studentUserId,
-            parent_uuid: parentUserId,
-            processed_at: new Date().toISOString(),
-            processing_error: null,
+            student_id: studentUserId,
+            parent_id: parentUserId,
+            error_message: null,
           })
-          .eq('id', record.id);
+          .eq('"SN"', sn);
 
         results.success_count++;
         results.created_students.push({
@@ -264,9 +265,9 @@ serve(async (req) => {
           .from('students_import_staging')
           .update({
             processed: false,
-            processing_error: error instanceof Error ? error.message : 'Unknown error',
+            error_message: error instanceof Error ? error.message : 'Unknown error',
           })
-          .eq('id', record.id);
+          .eq('"SN"', sn);
 
         results.error_count++;
         results.errors.push({
