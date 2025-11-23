@@ -147,13 +147,30 @@ serve(async (req) => {
               parentUserId = parentAuth.user.id;
               parentCache.set(record.parent_email.toLowerCase(), parentUserId);
 
-              // Update parent profile with emergency contact
-              await supabaseAdmin
+              // Wait for trigger to create parent_profile
+              await new Promise(resolve => setTimeout(resolve, 200));
+
+              // Check if parent_profile exists, then update or insert
+              const { data: existingParentProfile } = await supabaseAdmin
                 .from('parent_profiles')
-                .update({ 
-                  emergency_contact: parentPhone,
-                })
-                .eq('user_id', parentUserId);
+                .select('id')
+                .eq('user_id', parentUserId)
+                .maybeSingle();
+
+              if (existingParentProfile) {
+                await supabaseAdmin
+                  .from('parent_profiles')
+                  .update({ emergency_contact: parentPhone })
+                  .eq('user_id', parentUserId);
+              } else {
+                await supabaseAdmin
+                  .from('parent_profiles')
+                  .insert({
+                    user_id: parentUserId,
+                    emergency_contact: parentPhone,
+                    notification_preference: 'email',
+                  });
+              }
 
               console.log(`  Created parent account: ${record.parent_email}`);
             }
@@ -185,24 +202,63 @@ serve(async (req) => {
         const studentUserId = studentAuth.user.id;
         console.log(`  Created student account: ${studentEmail}`);
 
-        // Step 3: Update student profile with additional data
-        const { error: profileUpdateError } = await supabaseAdmin
+        // Step 3: Wait for database triggers to create student_profile, then update/insert
+        // Wait 200ms for trigger to complete
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Check if student_profile was created by trigger
+        const { data: existingProfile } = await supabaseAdmin
           .from('student_profiles')
-          .update({
-            admission_number: regNo,
-            class_level: classLevel,
-            parent_id: parentUserId,
-            registration_number: regNo,
-            school_fees: schoolFees,
-            debt_balance: debt,
-            membership_status: membershipStatus,
-            boarding_status: boardingStatus,
-          })
-          .eq('user_id', studentUserId);
+          .select('id')
+          .eq('user_id', studentUserId)
+          .maybeSingle();
 
-        if (profileUpdateError) {
-          console.error(`  Error updating student profile: ${profileUpdateError.message}`);
-          throw new Error(`Profile update failed: ${profileUpdateError.message}`);
+        const profileData = {
+          admission_number: regNo,
+          class_level: classLevel,
+          parent_id: parentUserId,
+          registration_number: regNo,
+          school_fees: schoolFees,
+          debt_balance: debt,
+          membership_status: membershipStatus,
+          boarding_status: boardingStatus,
+        };
+
+        if (existingProfile) {
+          // Update existing profile created by trigger
+          const { data: updatedProfile, error: updateError } = await supabaseAdmin
+            .from('student_profiles')
+            .update(profileData)
+            .eq('user_id', studentUserId)
+            .select('id')
+            .single();
+
+          if (updateError) {
+            console.error(`  Error updating student profile: ${updateError.message}`);
+            throw new Error(`Profile update failed: ${updateError.message}`);
+          }
+
+          if (!updatedProfile) {
+            console.warn(`  Warning: Update returned no data for student ${studentEmail}`);
+            throw new Error(`Profile update affected 0 rows`);
+          }
+
+          console.log(`  Updated existing student profile`);
+        } else {
+          // Trigger didn't create profile - insert directly
+          const { error: insertError } = await supabaseAdmin
+            .from('student_profiles')
+            .insert({
+              user_id: studentUserId,
+              ...profileData,
+            });
+
+          if (insertError) {
+            console.error(`  Error inserting student profile: ${insertError.message}`);
+            throw new Error(`Profile insert failed: ${insertError.message}`);
+          }
+
+          console.log(`  Inserted student profile directly`);
         }
 
         // Step 4: Create debt transaction if applicable
