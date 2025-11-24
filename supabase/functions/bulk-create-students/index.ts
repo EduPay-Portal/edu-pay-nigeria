@@ -17,10 +17,10 @@ interface StagingRecord {
   "SCHOOL FEES": string;
   "DEBTS": string;
   parent_email: string;
-  parent_id?: string;
-  student_id?: string;
+  parent_uuid?: string;
+  student_uuid?: string;
   processed: boolean;
-  error_message?: string;
+  processing_error?: string;
   created_at: string;
 }
 
@@ -296,9 +296,9 @@ serve(async (req) => {
           .from('students_import_staging')
           .update({
             processed: true,
-            student_id: studentUserId,
-            parent_id: parentUserId,
-            error_message: null,
+            student_uuid: studentUserId,
+            parent_uuid: parentUserId,
+            processing_error: null,
           })
           .eq('"SN"', sn);
 
@@ -321,7 +321,7 @@ serve(async (req) => {
           .from('students_import_staging')
           .update({
             processed: false,
-            error_message: error instanceof Error ? error.message : 'Unknown error',
+            processing_error: error instanceof Error ? error.message : 'Unknown error',
           })
           .eq('"SN"', sn);
 
