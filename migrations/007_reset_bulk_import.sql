@@ -5,9 +5,9 @@
 UPDATE public.students_import_staging
 SET 
   processed = false,
-  processing_error = null,
-  student_uuid = null,
-  parent_uuid = null;
+  error_message = null,
+  student_id = null,
+  parent_id = null;
 
 -- Step 2: (Optional) Clean up any incomplete auth users created during failed imports
 -- Only run this if you want to delete ALL previously created students/parents
