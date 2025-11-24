@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { FileUp, Play, AlertCircle, CheckCircle, Clock, Users, Loader2 } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { toast } from 'sonner';
+import { CSVUploadCard } from '@/components/admin/CSVUploadCard';
 
 interface StagingRecord {
   "SN": string;
@@ -30,7 +31,7 @@ export default function BulkImportPage() {
   const queryClient = useQueryClient();
 
   // Fetch staging records
-  const { data: stagingRecords, isLoading } = useQuery({
+  const { data: stagingRecords, isLoading, refetch } = useQuery({
     queryKey: ['bulk-import-staging'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -44,7 +45,7 @@ export default function BulkImportPage() {
   });
 
   // Fetch stats
-  const { data: stats } = useQuery({
+  const { data: stats, refetch: refetchStats } = useQuery({
     queryKey: ['bulk-import-stats'],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_import_staging_stats');
@@ -89,6 +90,12 @@ export default function BulkImportPage() {
         <h1 className="text-3xl font-bold">Bulk Import Management</h1>
         <p className="text-muted-foreground">Monitor and process student import batches</p>
       </div>
+
+      {/* CSV Upload */}
+      <CSVUploadCard onUploadComplete={() => {
+        refetch();
+        refetchStats();
+      }} />
 
       {/* Statistics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
