@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, FileText, AlertCircle, CheckCircle2, Trash2 } from "lucide-react";
+import { Upload, FileText, AlertCircle, CheckCircle2, Trash2, Loader2 } from "lucide-react";
 import Papa from "papaparse";
 import {
   AlertDialog,
@@ -91,64 +91,70 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
     setError(null);
 
     try {
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: async (results) => {
-          const data = results.data as CSVRow[];
-          
-          // Generate parent emails and prepare staging records
-          const stagingRecords = data.map((row) => ({
-            "SN": row.SN,
-            "SURNAME": row.SURNAME,
-            "NAMES": row.NAMES,
-            "CLASS": row.CLASS,
-            "REG NO": row["REG NO"],
-            "MEMBER/NMEMBER": row["MEMBER/NMEMBER"],
-            "DAY/BOARDER": row["DAY/BOARDER"],
-            "SCHOOL FEES": row["SCHOOL FEES"],
-            "DEBTS": row.DEBTS,
-            parent_email: `${row.SURNAME.toLowerCase().replace(/\s+/g, '')}.parent@edupay.school`,
-            parent_name: `${row.SURNAME} Family`,
-            parent_phone: "0800000000",
-            import_batch_id: `BATCH-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}`,
-            processed: false,
-          }));
-
-          // Insert in batches to show progress
-          const batchSize = 50;
-          const totalBatches = Math.ceil(stagingRecords.length / batchSize);
-
-          for (let i = 0; i < stagingRecords.length; i += batchSize) {
-            const batch = stagingRecords.slice(i, i + batchSize);
-            
-            const { error: insertError } = await supabase
-              .from("students_import_staging")
-              .insert(batch);
-
-            if (insertError) {
-              throw new Error(`Failed to insert batch: ${insertError.message}`);
-            }
-
-            const currentBatch = Math.floor(i / batchSize) + 1;
-            setProgress((currentBatch / totalBatches) * 100);
-          }
-
-          toast({
-            title: "Upload Successful",
-            description: `Successfully uploaded ${stagingRecords.length} student records to staging.`,
-          });
-
-          setFile(null);
-          setPreviewData([]);
-          onUploadComplete();
-        },
-        error: (err) => {
-          throw new Error(`Failed to parse CSV: ${err.message}`);
-        }
+      // Wrap Papa.parse in Promise for proper async handling
+      const csvData = await new Promise<CSVRow[]>((resolve, reject) => {
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => resolve(results.data as CSVRow[]),
+          error: (err) => reject(err)
+        });
       });
+
+      // Generate parent emails and prepare staging records
+      const stagingRecords = csvData.map((row) => ({
+        "SN": row.SN,
+        "SURNAME": row.SURNAME,
+        "NAMES": row.NAMES,
+        "CLASS": row.CLASS,
+        "REG NO": row["REG NO"],
+        "MEMBER/NMEMBER": row["MEMBER/NMEMBER"],
+        "DAY/BOARDER": row["DAY/BOARDER"],
+        "SCHOOL FEES": row["SCHOOL FEES"],
+        "DEBTS": row.DEBTS || "0",
+        parent_email: `${row.SURNAME.toLowerCase().replace(/\s+/g, '')}.parent@edupay.school`,
+        parent_name: `${row.SURNAME} Family`,
+        parent_phone: "0800000000",
+        processed: false,
+      }));
+
+      console.log('Uploading records:', stagingRecords.length);
+      console.log('Sample record:', stagingRecords[0]);
+
+      // Insert in batches to show progress
+      const batchSize = 50;
+      const totalBatches = Math.ceil(stagingRecords.length / batchSize);
+      let uploadedCount = 0;
+
+      for (let i = 0; i < stagingRecords.length; i += batchSize) {
+        const batch = stagingRecords.slice(i, i + batchSize);
+        const currentBatch = Math.floor(i / batchSize) + 1;
+        
+        const { error: insertError } = await supabase
+          .from("students_import_staging")
+          .insert(batch);
+
+        if (insertError) {
+          console.error('Insert error:', insertError);
+          throw new Error(`Batch ${currentBatch} failed: ${insertError.message}`);
+        }
+
+        uploadedCount += batch.length;
+        setProgress((currentBatch / totalBatches) * 100);
+      }
+
+      toast({
+        title: "✓ Upload Successful",
+        description: `Successfully uploaded ${uploadedCount} student records to staging.`,
+      });
+
+      setFile(null);
+      setPreviewData([]);
+      onUploadComplete();
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
+      console.error('Upload failed:', err);
       setError(errorMessage);
       toast({
         variant: "destructive",
@@ -235,8 +241,22 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
             className="flex-1"
           />
           {file && (
-            <Button onClick={handleUpload} disabled={isUploading || previewData.length === 0}>
-              {isUploading ? "Uploading..." : "Upload to Staging"}
+            <Button 
+              onClick={handleUpload} 
+              disabled={isUploading || previewData.length === 0}
+              className="min-w-[160px]"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload to Staging
+                </>
+              )}
             </Button>
           )}
         </div>
