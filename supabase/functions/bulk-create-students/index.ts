@@ -88,8 +88,8 @@ serve(async (req) => {
         const surname = record["SURNAME"];
         const classLevel = record["CLASS"];
         const regNo = record["REG NO"];
-        const schoolFees = parseFloat(record["SCHOOL FEES"] || "0") || 0;
-        const debt = parseFloat(record["DEBTS"] || "0") || 0;
+        const schoolFees = parseFloat((record["SCHOOL FEES"] || "0").replace(/,/g, '')) || 0;
+        const debt = parseFloat((record["DEBTS"] || "0").replace(/,/g, '')) || 0;
         const membershipStatus = record["MEMBER/NMEMBER"] === "MEMBER" ? "MEMBER" : "NON_MEMBER";
         const boardingStatus = record["DAY/BOARDER"] === "BOARDER" ? "BOARDER" : "DAY";
         
@@ -177,10 +177,43 @@ serve(async (req) => {
           }
         }
 
-        // Step 2: Create student account
+        // Step 2: Check if student already exists or create new account
         const studentFirstName = names;
         const studentLastName = surname;
         const studentEmail = `${regNo.toLowerCase()}@edupay.school`.replace(/\s+/g, '');
+        
+        console.log(`  Checking for existing student: ${studentEmail}`);
+        
+        // Check if student already exists
+        const { data: existingStudent } = await supabaseAdmin
+          .from('profiles')
+          .select('id')
+          .eq('email', studentEmail)
+          .maybeSingle();
+
+        let studentUserId: string;
+
+        if (existingStudent) {
+          studentUserId = existingStudent.id;
+          console.log(`  Found existing student: ${studentEmail}`);
+          
+          // Mark staging as processed and skip to next record
+          await supabaseAdmin
+            .from('students_import_staging')
+            .update({
+              processed: true,
+              student_id: studentUserId,
+              parent_id: parentUserId,
+              error_message: null,
+            })
+            .eq('SN', sn);
+          
+          results.success_count++;
+          console.log(`  ✓ Successfully processed existing student SN ${sn}`);
+          continue;
+        }
+
+        // Create new student account
         const studentPassword = `Student${Math.random().toString(36).slice(2, 10)}!`;
 
         const { data: studentAuth, error: studentAuthError } = await supabaseAdmin.auth.admin.createUser({
@@ -199,7 +232,7 @@ serve(async (req) => {
           throw new Error(`Student auth failed: ${studentAuthError.message}`);
         }
 
-        const studentUserId = studentAuth.user.id;
+        studentUserId = studentAuth.user.id;
         console.log(`  Created student account: ${studentEmail}`);
 
         // Step 3: Wait for database triggers to create student_profile, then update/insert
@@ -300,7 +333,7 @@ serve(async (req) => {
             parent_id: parentUserId,
             error_message: null,
           })
-          .eq('"SN"', sn);
+          .eq('SN', sn);
 
         results.success_count++;
         results.created_students.push({
@@ -323,7 +356,7 @@ serve(async (req) => {
             processed: false,
             error_message: error instanceof Error ? error.message : 'Unknown error',
           })
-          .eq('"SN"', sn);
+          .eq('SN', sn);
 
         results.error_count++;
         results.errors.push({
