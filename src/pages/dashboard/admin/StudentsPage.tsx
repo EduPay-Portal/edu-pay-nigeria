@@ -65,6 +65,9 @@ export default function StudentsPage() {
     return sum + (wallet?.balance || 0);
   }, 0) || 0;
   const avgBalance = totalStudents > 0 ? totalBalance / totalStudents : 0;
+  const totalSchoolFees = students?.reduce((sum, student) => {
+    return sum + (student.school_fees || 0);
+  }, 0) || 0;
 
   // Filter students based on search
   const filteredStudents = students?.filter(student => {
@@ -121,7 +124,7 @@ export default function StudentsPage() {
       </div>
 
       {/* Statistics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatCard
           title="Total Students"
           value={totalStudents.toString()}
@@ -131,6 +134,12 @@ export default function StudentsPage() {
           title="Active Students"
           value={activeStudents.toString()}
           icon={UserCheck}
+        />
+        <StatCard
+          title="Total School Fees"
+          value={`₦${totalSchoolFees.toLocaleString()}`}
+          icon={TrendingUp}
+          description="Expected revenue"
         />
         <StatCard
           title="Total Balance"
@@ -194,6 +203,7 @@ export default function StudentsPage() {
                     <TableHead>Type</TableHead>
                     <TableHead>Parent</TableHead>
                     <TableHead>Virtual Account</TableHead>
+                    <TableHead>School Fees</TableHead>
                     <TableHead>Wallet Balance</TableHead>
                     <TableHead>Debt</TableHead>
                     <TableHead>Status</TableHead>
@@ -247,6 +257,9 @@ export default function StudentsPage() {
                         </TableCell>
                         <TableCell>
                           <VirtualAccountStatus studentId={profile?.id || student.user_id} />
+                        </TableCell>
+                        <TableCell className="font-semibold text-primary">
+                          ₦{student.school_fees?.toLocaleString() || '0'}
                         </TableCell>
                         <TableCell className="font-semibold">
                           ₦{wallet?.balance?.toLocaleString() || '0'}
