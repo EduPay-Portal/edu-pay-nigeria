@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Search, UserPlus, Download, Filter, Users, UserCheck, Wallet, TrendingUp, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
+import Papa from 'papaparse';
+import { toast } from 'sonner';
 
 export default function StudentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -76,6 +78,40 @@ export default function StudentsPage() {
     );
   });
 
+  // Export student credentials to CSV
+  const handleExportCredentials = () => {
+    if (!students || students.length === 0) {
+      toast.error('No students to export');
+      return;
+    }
+
+    const csvData = students.map(student => {
+      const profile = Array.isArray(student.profiles) ? student.profiles[0] : student.profiles;
+      return {
+        'First Name': profile?.first_name || '',
+        'Last Name': profile?.last_name || '',
+        'Email': profile?.email || '',
+        'Password': student.admission_number || '',
+        'Admission Number': student.admission_number || '',
+        'Class': student.class_level || '',
+        'Registration Number': student.registration_number || '',
+      };
+    });
+
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `student_credentials_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success(`Exported ${students.length} student credentials`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -121,9 +157,9 @@ export default function StudentsPage() {
                 <Filter className="h-4 w-4 mr-2" />
                 Filter
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleExportCredentials}>
                 <Download className="h-4 w-4 mr-2" />
-                Export
+                Export Credentials
               </Button>
               <Button size="sm">
                 <UserPlus className="h-4 w-4 mr-2" />
