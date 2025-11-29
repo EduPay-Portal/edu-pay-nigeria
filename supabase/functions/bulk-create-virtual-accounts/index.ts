@@ -117,114 +117,152 @@ serve(async (req) => {
     }
 
     const results: ProcessingResult[] = [];
-    const BATCH_SIZE = 10;
-    const DELAY_MS = 500;
+    const DELAY_MS = 2000; // 2 seconds between each student
+    const MAX_RETRIES = 3;
 
-    // Process in batches
-    for (let i = 0; i < studentsToProcess.length; i += BATCH_SIZE) {
-      const batch = studentsToProcess.slice(i, i + BATCH_SIZE);
-      console.log(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} students)`);
-
-      const batchPromises = batch.map(async (student) => {
-        const profile = Array.isArray(student.profiles) ? student.profiles[0] : student.profiles;
+    // Helper function to retry with exponential backoff
+    async function fetchWithRetry(url: string, options: any, retries = MAX_RETRIES): Promise<Response> {
+      for (let i = 0; i <= retries; i++) {
+        const response = await fetch(url, options);
         
-        if (!profile?.email || !profile?.first_name || !profile?.last_name) {
-          return {
-            student_id: student.user_id,
-            success: false,
-            error: 'Missing required profile data',
-          };
+        // If successful or non-retryable error, return immediately
+        if (response.ok || response.status !== 429) {
+          return response;
+        }
+        
+        // Rate limited - wait with exponential backoff
+        if (i < retries) {
+          const backoffMs = Math.pow(2, i) * 2000; // 2s, 4s, 8s
+          console.log(`Rate limited, waiting ${backoffMs}ms before retry ${i + 1}/${retries}`);
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+        }
+      }
+      
+      // If we exhausted retries, return the last response
+      return fetch(url, options);
+    }
+
+    // Process students sequentially (one at a time)
+    for (let i = 0; i < studentsToProcess.length; i++) {
+      const student = studentsToProcess[i];
+      console.log(`Processing student ${i + 1}/${studentsToProcess.length}: ${student.user_id}`);
+
+      const profile = Array.isArray(student.profiles) ? student.profiles[0] : student.profiles;
+      
+      if (!profile?.email || !profile?.first_name || !profile?.last_name) {
+        results.push({
+          student_id: student.user_id,
+          success: false,
+          error: 'Missing required profile data',
+        });
+        continue;
+      }
+
+      try {
+        // Create Paystack customer with retry
+        const customerResponse = await fetchWithRetry('https://api.paystack.co/customer', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${paystackSecretKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: profile.email,
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            metadata: { student_id: student.user_id },
+          }),
+        });
+
+        if (!customerResponse.ok) {
+          const errorText = await customerResponse.text();
+          throw new Error(`Customer creation failed: ${errorText}`);
         }
 
-        try {
-          // Create Paystack customer
-          const customerResponse = await fetch('https://api.paystack.co/customer', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${paystackSecretKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              email: profile.email,
-              first_name: profile.first_name,
-              last_name: profile.last_name,
-              metadata: { student_id: student.user_id },
-            }),
-          });
+        const customerData: PaystackCustomerResponse = await customerResponse.json();
+        if (!customerData.status) {
+          throw new Error(customerData.message);
+        }
 
-          if (!customerResponse.ok) {
-            const errorText = await customerResponse.text();
-            throw new Error(`Customer creation failed: ${errorText}`);
+        const customerCode = customerData.data.customer_code;
+
+        // Small delay before DVA creation
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Assign DVA with retry
+        const dvaResponse = await fetchWithRetry('https://api.paystack.co/dedicated_account', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${paystackSecretKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customer: customerCode,
+            preferred_bank: 'wema-bank',
+          }),
+        });
+
+        if (!dvaResponse.ok) {
+          const errorText = await dvaResponse.text();
+          
+          // Check if it's a "feature unavailable" error
+          if (errorText.includes('feature_unavailable')) {
+            throw new Error('FEATURE_UNAVAILABLE: Virtual accounts not enabled on Paystack account');
           }
+          
+          throw new Error(`DVA creation failed: ${errorText}`);
+        }
 
-          const customerData: PaystackCustomerResponse = await customerResponse.json();
-          if (!customerData.status) {
-            throw new Error(customerData.message);
+        const dvaData: PaystackDVAResponse = await dvaResponse.json();
+        if (!dvaData.status) {
+          if (dvaData.message.includes('not available')) {
+            throw new Error('FEATURE_UNAVAILABLE: Virtual accounts not enabled on Paystack account');
           }
+          throw new Error(dvaData.message);
+        }
 
-          const customerCode = customerData.data.customer_code;
+        const { account_number, account_name, bank } = dvaData.data;
 
-          // Assign DVA
-          const dvaResponse = await fetch('https://api.paystack.co/dedicated_account', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${paystackSecretKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              customer: customerCode,
-              preferred_bank: 'wema-bank',
-            }),
-          });
-
-          if (!dvaResponse.ok) {
-            const errorText = await dvaResponse.text();
-            throw new Error(`DVA creation failed: ${errorText}`);
-          }
-
-          const dvaData: PaystackDVAResponse = await dvaResponse.json();
-          if (!dvaData.status) {
-            throw new Error(dvaData.message);
-          }
-
-          const { account_number, account_name, bank } = dvaData.data;
-
-          // Save to database
-          const { error: dbError } = await supabase
-            .from('virtual_accounts')
-            .insert({
-              student_id: student.user_id,
-              paystack_customer_code: customerCode,
-              account_number,
-              account_name,
-              bank_name: bank.name,
-              bank_code: bank.id.toString(),
-              is_active: true,
-            });
-
-          if (dbError) throw new Error(`DB error: ${dbError.message}`);
-
-          return {
+        // Save to database
+        const { error: dbError } = await supabase
+          .from('virtual_accounts')
+          .insert({
             student_id: student.user_id,
-            success: true,
+            paystack_customer_code: customerCode,
             account_number,
-          };
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          console.error(`Error for student ${student.user_id}:`, errorMessage);
-          return {
-            student_id: student.user_id,
-            success: false,
-            error: errorMessage,
-          };
+            account_name,
+            bank_name: bank.name,
+            bank_code: bank.id.toString(),
+            is_active: true,
+          });
+
+        if (dbError) throw new Error(`DB error: ${dbError.message}`);
+
+        console.log(`✅ Created VA for student ${student.user_id}: ${account_number}`);
+        results.push({
+          student_id: student.user_id,
+          success: true,
+          account_number,
+        });
+        
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(`❌ Error for student ${student.user_id}:`, errorMessage);
+        results.push({
+          student_id: student.user_id,
+          success: false,
+          error: errorMessage,
+        });
+        
+        // If feature unavailable, stop processing all students
+        if (errorMessage.includes('FEATURE_UNAVAILABLE')) {
+          console.error('⚠️ Virtual accounts feature not available. Stopping bulk creation.');
+          break;
         }
-      });
+      }
 
-      const batchResults = await Promise.all(batchPromises);
-      results.push(...batchResults);
-
-      // Delay between batches (except for last batch)
-      if (i + BATCH_SIZE < studentsToProcess.length) {
+      // Delay before next student (except for last one)
+      if (i < studentsToProcess.length - 1) {
         await new Promise(resolve => setTimeout(resolve, DELAY_MS));
       }
     }
