@@ -81,7 +81,29 @@ export const profileUpdateSchema = z.object({
   phoneNumber: phoneSchema,
 });
 
+// Edit student profile validation (admin only)
+export const editStudentSchema = z.object({
+  classLevel: z
+    .string()
+    .min(1, 'Class level is required')
+    .max(50, 'Class level must be less than 50 characters'),
+  section: z.string().max(50).optional().nullable(),
+  schoolFees: z.coerce
+    .number()
+    .min(0, 'School fees cannot be negative')
+    .optional(),
+  debtBalance: z.coerce
+    .number()
+    .min(0, 'Debt balance cannot be negative')
+    .optional(),
+  membershipStatus: z.enum(['MEMBER', 'NMEMBER']).optional().nullable(),
+  boardingStatus: z.enum(['DAY', 'BOARDER']).optional().nullable(),
+  parentId: z.string().uuid().optional().nullable(),
+  registrationNumber: z.string().max(50).optional().nullable(),
+});
+
 export type StudentProfileInput = z.infer<typeof studentProfileSchema>;
 export type ParentProfileInput = z.infer<typeof parentProfileSchema>;
 export type AdminProfileInput = z.infer<typeof adminProfileSchema>;
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
+export type EditStudentInput = z.infer<typeof editStudentSchema>;
