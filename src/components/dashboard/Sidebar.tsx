@@ -66,7 +66,7 @@ export const Sidebar = () => {
 
   const handleLogout = async () => {
     await signOut();
-    navigate('/auth');
+    navigate('/');
   };
 
   const getInitials = () => {
