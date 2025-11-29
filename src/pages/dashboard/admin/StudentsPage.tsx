@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { VirtualAccountStatus } from '@/components/admin/VirtualAccountStatus';
+import { StudentDetailDialog } from '@/components/admin/StudentDetailDialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, UserPlus, Download, Filter, Users, UserCheck, Wallet, TrendingUp, ShieldAlert } from 'lucide-react';
+import { Search, UserPlus, Download, Filter, Users, UserCheck, Wallet, TrendingUp, ShieldAlert, Eye } from 'lucide-react';
 import { useState } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import Papa from 'papaparse';
@@ -15,6 +16,8 @@ import { toast } from 'sonner';
 
 export default function StudentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   // Fetch students with profiles and wallets
   const { data: students, isLoading } = useQuery({
@@ -278,7 +281,17 @@ export default function StudentsPage() {
                           <Badge variant="default" className="bg-green-500">Active</Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">View</Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedStudent(student);
+                              setDialogOpen(true);
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -293,6 +306,12 @@ export default function StudentsPage() {
           )}
         </CardContent>
       </Card>
+
+      <StudentDetailDialog 
+        student={selectedStudent}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 }
