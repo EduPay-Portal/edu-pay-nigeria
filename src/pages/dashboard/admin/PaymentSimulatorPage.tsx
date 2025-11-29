@@ -27,20 +27,42 @@ export default function PaymentSimulatorPage() {
   const queryClient = useQueryClient();
 
   // Fetch students with virtual accounts
-  const { data: students } = useQuery({
+  const { data: students, isLoading: loadingStudents } = useQuery({
     queryKey: ['students-with-va'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First, get all active virtual accounts
+      const { data: virtualAccounts, error: vaError } = await supabase
+        .from('virtual_accounts')
+        .select('student_id, account_number, bank_name, is_active')
+        .eq('is_active', true);
+
+      if (vaError) throw vaError;
+      if (!virtualAccounts || virtualAccounts.length === 0) return [];
+
+      // Get the student IDs that have virtual accounts
+      const studentIds = virtualAccounts.map(va => va.student_id);
+
+      // Fetch student profiles with names for those students
+      const { data: studentProfiles, error: spError } = await supabase
         .from('student_profiles')
         .select(`
           user_id,
-          profiles!inner(first_name, last_name),
-          virtual_accounts!inner(account_number, bank_name, is_active)
+          profiles!inner(first_name, last_name)
         `)
-        .eq('virtual_accounts.is_active', true);
+        .in('user_id', studentIds);
 
-      if (error) throw error;
-      return data;
+      if (spError) throw spError;
+      if (!studentProfiles) return [];
+
+      // Merge the data client-side
+      return studentProfiles.map(sp => {
+        const va = virtualAccounts.find(v => v.student_id === sp.user_id);
+        return {
+          user_id: sp.user_id,
+          profiles: sp.profiles,
+          virtual_accounts: va,
+        };
+      }).filter(s => s.virtual_accounts); // Only return students with VA
     },
   });
 
