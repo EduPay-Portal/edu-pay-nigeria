@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { VirtualAccountStatus } from '@/components/admin/VirtualAccountStatus';
 import { StudentDetailDialog } from '@/components/admin/StudentDetailDialog';
 import { EditStudentDialog } from '@/components/admin/EditStudentDialog';
+import { AddStudentDialog } from '@/components/admin/AddStudentDialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import { useState } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import Papa from 'papaparse';
 import { toast } from 'sonner';
+import { StudentFilters } from '@/components/admin/StudentFilters';
 
 export default function StudentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -21,6 +23,13 @@ export default function StudentsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [studentToEdit, setStudentToEdit] = useState<any>(null);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    classLevels: [] as string[],
+    membershipStatus: [] as string[],
+    boardingStatus: [] as string[],
+    hasDebt: null as boolean | null,
+  });
 
   // Fetch students with profiles and wallets
   const { data: students, isLoading } = useQuery({
@@ -79,13 +88,42 @@ export default function StudentsPage() {
   const filteredStudents = students?.filter(student => {
     const profile = Array.isArray(student.profiles) ? student.profiles[0] : student.profiles;
     const searchLower = searchQuery.toLowerCase();
-    return (
+    
+    // Search filter
+    const matchesSearch = 
       profile?.first_name?.toLowerCase().includes(searchLower) ||
       profile?.last_name?.toLowerCase().includes(searchLower) ||
       student.admission_number?.toLowerCase().includes(searchLower) ||
-      student.class_level?.toLowerCase().includes(searchLower)
-    );
+      student.class_level?.toLowerCase().includes(searchLower);
+
+    if (!matchesSearch) return false;
+
+    // Class level filter
+    if (filters.classLevels.length > 0 && !filters.classLevels.includes(student.class_level)) {
+      return false;
+    }
+
+    // Membership filter
+    if (filters.membershipStatus.length > 0 && !filters.membershipStatus.includes(student.membership_status)) {
+      return false;
+    }
+
+    // Boarding filter
+    if (filters.boardingStatus.length > 0 && !filters.boardingStatus.includes(student.boarding_status)) {
+      return false;
+    }
+
+    // Debt filter
+    if (filters.hasDebt !== null) {
+      const hasDebt = student.debt_balance && student.debt_balance > 0;
+      if (filters.hasDebt !== hasDebt) return false;
+    }
+
+    return true;
   });
+
+  // Get unique class levels for filter
+  const availableClasses = Array.from(new Set(students?.map(s => s.class_level).filter(Boolean) || [])).sort();
 
   // Export student credentials to CSV
   const handleExportCredentials = () => {
@@ -168,15 +206,16 @@ export default function StudentsPage() {
               <CardDescription>View and manage student records</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                Filter
-              </Button>
+              <StudentFilters 
+                filters={filters}
+                onFiltersChange={setFilters}
+                availableClasses={availableClasses}
+              />
               <Button variant="outline" size="sm" onClick={handleExportCredentials}>
                 <Download className="h-4 w-4 mr-2" />
                 Export Credentials
               </Button>
-              <Button size="sm">
+              <Button size="sm" onClick={() => setAddDialogOpen(true)}>
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add Student
               </Button>
@@ -333,6 +372,11 @@ export default function StudentsPage() {
         student={studentToEdit}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
+      />
+
+      <AddStudentDialog 
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
       />
     </div>
   );
