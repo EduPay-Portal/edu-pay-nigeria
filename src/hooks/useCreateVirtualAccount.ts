@@ -33,6 +33,7 @@ export function useCreateVirtualAccount() {
 
   return {
     createAccount: mutation.mutate,
+    createAccountAsync: mutation.mutateAsync,
     isCreating: mutation.isPending,
     error: mutation.error,
   };
