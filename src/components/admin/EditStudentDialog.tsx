@@ -63,7 +63,7 @@ export function EditStudentDialog({ student, open, onOpenChange }: EditStudentDi
       if (error) throw error;
       return data;
     },
-    enabled: open,
+    enabled: open && !!student,
   });
 
   const form = useForm<EditStudentInput>({
@@ -111,10 +111,8 @@ export function EditStudentDialog({ student, open, onOpenChange }: EditStudentDi
     }
   };
 
-  if (!student) return null;
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open && !!student} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-3">
