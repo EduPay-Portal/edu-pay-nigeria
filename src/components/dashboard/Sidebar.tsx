@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, History, User, Settings, LogOut, Menu, Upload, Webhook, GitCompare } from 'lucide-react';
+import { LayoutDashboard, Wallet, History, User, Settings, LogOut, Menu, Upload, Webhook, GitCompare, FlaskConical } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -49,6 +49,7 @@ const adminItems = [
   { title: 'Parents', url: '/dashboard/admin/parents', icon: User },
   { title: 'Transactions', url: '/dashboard/admin/transactions', icon: History },
   { title: 'Bulk Import', url: '/dashboard/admin/bulk-import', icon: Upload },
+  { title: 'Payment Simulator', url: '/dashboard/admin/payment-simulator', icon: FlaskConical },
   { title: 'Webhooks', url: '/dashboard/admin/webhooks', icon: Webhook },
   { title: 'Reconciliation', url: '/dashboard/admin/reconciliation', icon: GitCompare },
   { title: 'Settings', url: '/dashboard/admin/settings', icon: Settings },

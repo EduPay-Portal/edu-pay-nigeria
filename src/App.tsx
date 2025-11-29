@@ -20,6 +20,7 @@ import SettingsPage from "./pages/dashboard/admin/SettingsPage";
 import BulkImportPage from "./pages/dashboard/admin/BulkImportPage";
 import WebhooksPage from "./pages/dashboard/admin/WebhooksPage";
 import ReconciliationPage from "./pages/dashboard/admin/ReconciliationPage";
+import PaymentSimulatorPage from "./pages/dashboard/admin/PaymentSimulatorPage";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const App = () => (
                 <Route path="admin/parents" element={<ProtectedRoute allowedRoles={['admin']}><ParentsPage /></ProtectedRoute>} />
                 <Route path="admin/transactions" element={<ProtectedRoute allowedRoles={['admin']}><TransactionsPage /></ProtectedRoute>} />
                 <Route path="admin/bulk-import" element={<ProtectedRoute allowedRoles={['admin']}><BulkImportPage /></ProtectedRoute>} />
+                <Route path="admin/payment-simulator" element={<ProtectedRoute allowedRoles={['admin']}><PaymentSimulatorPage /></ProtectedRoute>} />
                 <Route path="admin/webhooks" element={<ProtectedRoute allowedRoles={['admin']}><WebhooksPage /></ProtectedRoute>} />
                 <Route path="admin/reconciliation" element={<ProtectedRoute allowedRoles={['admin']}><ReconciliationPage /></ProtectedRoute>} />
                 <Route path="admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><SettingsPage /></ProtectedRoute>} />
