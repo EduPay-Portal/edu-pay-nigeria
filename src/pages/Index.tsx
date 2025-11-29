@@ -63,8 +63,8 @@ const Index = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 lg:px-8 py-16 md:py-24">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <section className="container mx-auto px-4 lg:px-8 py-12 md:py-16">
+        <div className="grid lg:grid-cols-2 gap-8 items-center">
           {/* Left Content */}
           <div className="space-y-8 animate-fade-in">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
@@ -85,16 +85,18 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-lg" asChild>
                 <Link to="/auth">
-                  Start Free Trial <ArrowRight className="ml-2 w-5 h-5" />
+                  Login <ArrowRight className="ml-2 w-5 h-5" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline">
-                Watch Demo
+              <Button size="lg" variant="outline" asChild>
+                <Link to="/auth">
+                  Get Started
+                </Link>
               </Button>
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-2 gap-6 pt-8">
+            <div className="grid grid-cols-2 gap-6 pt-6">
               <div className="space-y-1">
                 <div className="flex items-baseline gap-1">
                   <span className="text-3xl font-bold text-primary">410+</span>
@@ -178,9 +180,9 @@ const Index = () => {
       </section>
 
       {/* Features Section - Numbered Grid */}
-      <section id="features" className="bg-muted/30 py-20 md:py-28">
+      <section id="features" className="bg-muted/30 py-12 md:py-16">
         <div className="container mx-auto px-4 lg:px-8">
-          <div className="text-center mb-16 space-y-4">
+          <div className="text-center mb-10 space-y-3">
             <div className="inline-flex items-center gap-2">
               <div className="h-px w-8 bg-primary"></div>
               <span className="text-sm font-semibold text-primary uppercase tracking-wider">Financial Excellence</span>
@@ -194,7 +196,7 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
             {/* Feature 01 */}
             <Card className="p-6 space-y-4 hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/50">
               <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center font-bold text-primary text-xl">
@@ -249,7 +251,7 @@ const Index = () => {
           </div>
 
           {/* Additional Features Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 max-w-6xl mx-auto">
             <Card className="p-6 space-y-3 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-shadow">
               <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                 <Zap className="w-5 h-5 text-primary" />
@@ -278,9 +280,9 @@ const Index = () => {
       </section>
 
       {/* Why Choose Us Section */}
-      <section id="why-choose" className="py-20 md:py-28">
+      <section id="why-choose" className="py-12 md:py-16">
         <div className="container mx-auto px-4 lg:px-8">
-          <div className="text-center mb-16 space-y-4">
+          <div className="text-center mb-10 space-y-3">
             <h2 className="text-3xl md:text-5xl font-bold">
               Why schools <span className="text-primary">trust EduPay</span>
             </h2>
@@ -289,7 +291,7 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
             <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
               <div className="h-2 bg-gradient-to-r from-primary to-primary/50"></div>
               <div className="p-8 space-y-4">
@@ -342,9 +344,9 @@ const Index = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="bg-muted/30 py-20 md:py-28">
+      <section id="testimonials" className="bg-muted/30 py-12 md:py-16">
         <div className="container mx-auto px-4 lg:px-8">
-          <div className="text-center mb-16 space-y-4">
+          <div className="text-center mb-10 space-y-3">
             <h2 className="text-3xl md:text-5xl font-bold">
               What our <span className="text-primary">users say</span>
             </h2>
@@ -353,7 +355,7 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
             <Card className="p-8 space-y-6 bg-primary/5 border-primary/20">
               <div className="flex gap-1">
                 {[...Array(5)].map((_, i) => (
@@ -398,7 +400,7 @@ const Index = () => {
       </section>
 
       {/* Trust Indicators */}
-      <section className="py-16">
+      <section className="py-10">
         <div className="container mx-auto px-4 lg:px-8">
           <div className="text-center mb-12">
             <p className="text-sm text-muted-foreground uppercase tracking-wider mb-8">Trusted by leading institutions</p>
@@ -421,7 +423,7 @@ const Index = () => {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-20 md:py-28">
+      <section className="py-12 md:py-16">
         <div className="container mx-auto px-4 lg:px-8">
           <div className="max-w-4xl mx-auto">
             <Card className="relative overflow-hidden">
@@ -455,8 +457,8 @@ const Index = () => {
 
       {/* Enhanced Footer */}
       <footer className="border-t bg-muted/30">
-        <div className="container mx-auto px-4 lg:px-8 py-16">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+        <div className="container mx-auto px-4 lg:px-8 py-12">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
             {/* Column 1 - Brand */}
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
