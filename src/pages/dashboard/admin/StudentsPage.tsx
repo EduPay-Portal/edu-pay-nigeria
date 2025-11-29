@@ -10,12 +10,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, UserPlus, Download, Filter, Users, UserCheck, Wallet, TrendingUp, ShieldAlert, Eye, Pencil } from 'lucide-react';
+import { Search, UserPlus, Download, Filter, Users, UserCheck, Wallet, TrendingUp, ShieldAlert, Eye, Pencil, AlertCircle, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import Papa from 'papaparse';
 import { toast } from 'sonner';
 import { StudentFilters } from '@/components/admin/StudentFilters';
+import { useBulkCreateVirtualAccounts } from '@/hooks/useBulkCreateVirtualAccounts';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function StudentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,8 +34,10 @@ export default function StudentsPage() {
     hasDebt: null as boolean | null,
   });
 
+  const { isCreating, progress, errors, startBulkCreation } = useBulkCreateVirtualAccounts();
+
   // Fetch students with profiles and wallets
-  const { data: students, isLoading } = useQuery({
+  const { data: students, isLoading, refetch } = useQuery({
     queryKey: ['admin-students'],
     queryFn: async () => {
       // Fetch student profiles
@@ -83,6 +88,31 @@ export default function StudentsPage() {
   const totalSchoolFees = students?.reduce((sum, student) => {
     return sum + (student.school_fees || 0);
   }, 0) || 0;
+
+  // Count students without virtual accounts
+  const { data: virtualAccountsCount } = useQuery({
+    queryKey: ['va-count'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('virtual_accounts')
+        .select('student_id', { count: 'exact' });
+      
+      if (error) throw error;
+      return data?.length || 0;
+    },
+  });
+
+  const studentsWithoutVA = totalStudents - (virtualAccountsCount || 0);
+
+  const handleBulkCreateVA = async () => {
+    try {
+      await startBulkCreation();
+      // Refresh students list to show new VA statuses
+      refetch();
+    } catch (error) {
+      console.error('Bulk creation failed:', error);
+    }
+  };
 
   // Filter students based on search
   const filteredStudents = students?.filter(student => {
@@ -197,6 +227,76 @@ export default function StudentsPage() {
         />
       </div>
 
+      {/* Bulk Virtual Account Creation */}
+      {studentsWithoutVA > 0 && (
+        <Alert className="border-warning bg-warning/10">
+          <AlertCircle className="h-4 w-4 text-warning" />
+          <AlertTitle className="text-warning">Virtual Accounts Not Created</AlertTitle>
+          <AlertDescription className="space-y-4">
+            <p className="text-sm text-foreground">
+              <strong>{studentsWithoutVA}</strong> student{studentsWithoutVA !== 1 ? 's' : ''} do not have virtual accounts yet.
+              Virtual accounts are required for receiving bank transfer payments from parents.
+            </p>
+            
+            {!isCreating && progress.total === 0 && (
+              <Button 
+                onClick={handleBulkCreateVA}
+                className="w-full sm:w-auto"
+              >
+                🏦 Create Virtual Accounts for All Students
+              </Button>
+            )}
+
+            {isCreating && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Creating virtual accounts...</span>
+                  <span className="font-semibold">
+                    {progress.processed} / {progress.total}
+                  </span>
+                </div>
+                <Progress 
+                  value={(progress.processed / progress.total) * 100} 
+                  className="h-2"
+                />
+              </div>
+            )}
+
+            {!isCreating && progress.total > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-1">
+                    <span className="text-success font-semibold">✅ {progress.successful}</span>
+                    <span className="text-muted-foreground">successful</span>
+                  </div>
+                  {progress.failed > 0 && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-destructive font-semibold">❌ {progress.failed}</span>
+                      <span className="text-muted-foreground">failed</span>
+                    </div>
+                  )}
+                </div>
+
+                {errors.length > 0 && (
+                  <details className="text-sm">
+                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                      View {errors.length} error{errors.length !== 1 ? 's' : ''}
+                    </summary>
+                    <div className="mt-2 space-y-1 max-h-40 overflow-y-auto">
+                      {errors.map((err, idx) => (
+                        <div key={idx} className="text-xs text-destructive font-mono">
+                          Student {err.student_id}: {err.error}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Search and Actions */}
       <Card>
         <CardHeader>
@@ -301,7 +401,11 @@ export default function StudentsPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <VirtualAccountStatus studentId={profile?.id || student.user_id} />
+                          <VirtualAccountStatus 
+                            studentId={profile?.id || student.user_id}
+                            studentName={`${profile?.first_name || ''} ${profile?.last_name || ''}`.trim()}
+                            studentEmail={profile?.email}
+                          />
                         </TableCell>
                         <TableCell className="font-semibold text-primary">
                           ₦{student.school_fees?.toLocaleString() || '0'}
