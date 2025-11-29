@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SignInFormData, SignUpFormData, ResetPasswordFormData, signInSchema, signUpSchema, resetPasswordSchema } from "@/lib/validations/auth";
-import { Eye, EyeOff, Wallet, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import logo from "@/assets/logo_edupay.png";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -92,11 +93,10 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Left Panel - Blue Gradient */}
-      <div className="relative lg:w-[40%] w-full min-h-[30vh] lg:min-h-screen bg-gradient-to-br from-[#4361EE] to-[#3651CE] p-8 lg:p-12 flex flex-col">
+      <div className="relative lg:w-[40%] w-full min-h-[30vh] lg:min-h-screen bg-gradient-to-br from-[#0d4a6b] to-[#082a3d] p-8 lg:p-12 flex flex-col">
         {/* Logo at top */}
         <div className="flex items-center text-white mb-8">
-          <Wallet className="w-8 h-8" />
-          <span className="ml-3 text-2xl font-bold">EduPay Connect</span>
+          <img src={logo} alt="EduPay Connect" className="h-10 w-auto brightness-0 invert" />
         </div>
         
         {/* Centered content */}

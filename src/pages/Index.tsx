@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useEffect } from "react";
+import logo from "@/assets/logo_edupay.png";
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
@@ -35,13 +36,7 @@ const Index = () => {
         <div className="container mx-auto px-4 lg:px-8 py-4">
           <nav className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
-                <Wallet className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold text-foreground">EduPay</span>
-                <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-semibold rounded">2.0</span>
-              </div>
+              <img src={logo} alt="EduPay Connect" className="h-10 w-auto" />
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
@@ -462,10 +457,7 @@ const Index = () => {
             {/* Column 1 - Brand */}
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
-                  <Wallet className="w-5 h-5 text-primary-foreground" />
-                </div>
-                <span className="text-2xl font-bold">EduPay</span>
+                <img src={logo} alt="EduPay Connect" className="h-10 w-auto" />
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Nigeria's most trusted digital payment ecosystem for school fee management. Secure, transparent, and efficient.
