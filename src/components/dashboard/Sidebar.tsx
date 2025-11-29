@@ -1,5 +1,6 @@
 import { LayoutDashboard, Wallet, History, User, Settings, LogOut, Menu, Upload, Webhook, GitCompare, FlaskConical } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import logo from '@/assets/logo_edupay.png';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -90,18 +91,10 @@ export const Sidebar = () => {
       {/* Header */}
       <div className="p-4 border-b border-sidebar-border bg-sidebar">
         <div className="flex items-center justify-between">
-          {!isCollapsed && (
-            <div className="flex items-center space-x-2">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <Wallet className="w-5 h-5 text-primary" />
-              </div>
-              <span className="text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">EduPay</span>
-            </div>
-          )}
-          {isCollapsed && (
-            <div className="p-1.5 rounded-lg bg-primary/10 mx-auto">
-              <Wallet className="w-5 h-5 text-primary" />
-            </div>
+          {!isCollapsed ? (
+            <img src={logo} alt="EduPay" className="h-8 w-auto" />
+          ) : (
+            <img src={logo} alt="EduPay" className="h-6 w-auto mx-auto" />
           )}
         </div>
         
