@@ -244,14 +244,17 @@ export function EditStudentDialog({ student, open, onOpenChange }: EditStudentDi
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Linked Parent</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                  <Select 
+                    onValueChange={(value) => field.onChange(value === 'none' ? null : value)} 
+                    value={field.value || 'none'}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select parent (optional)" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">No parent</SelectItem>
+                      <SelectItem value="none">No parent</SelectItem>
                       {parents?.map((parent) => {
                         const parentProfile = Array.isArray(parent.profiles) 
                           ? parent.profiles[0] 
