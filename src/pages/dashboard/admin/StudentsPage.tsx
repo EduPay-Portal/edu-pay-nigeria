@@ -338,21 +338,21 @@ export default function StudentsPage() {
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Loading students...</div>
           ) : filteredStudents && filteredStudents.length > 0 ? (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
+            <div className="rounded-md border overflow-x-auto shadow-sm">
+              <Table className="min-w-[1400px]">
+                <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead>Student</TableHead>
-                    <TableHead>Admission No.</TableHead>
-                    <TableHead>Class</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Parent</TableHead>
-                    <TableHead>Virtual Account</TableHead>
-                    <TableHead>School Fees</TableHead>
-                    <TableHead>Wallet Balance</TableHead>
-                    <TableHead>Debt</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="font-semibold">Student</TableHead>
+                    <TableHead className="font-semibold">Admission No.</TableHead>
+                    <TableHead className="font-semibold">Class</TableHead>
+                    <TableHead className="font-semibold">Type</TableHead>
+                    <TableHead className="font-semibold">Parent</TableHead>
+                    <TableHead className="font-semibold">Virtual Account</TableHead>
+                    <TableHead className="font-semibold">School Fees</TableHead>
+                    <TableHead className="font-semibold">Wallet Balance</TableHead>
+                    <TableHead className="font-semibold">Debt</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="text-right font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -362,7 +362,7 @@ export default function StudentsPage() {
                     const parent = Array.isArray(student.parent_profile) ? student.parent_profile[0] : student.parent_profile;
 
                     return (
-                      <TableRow key={student.id}>
+                      <TableRow key={student.id} className="hover:bg-muted/50 transition-colors">
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">

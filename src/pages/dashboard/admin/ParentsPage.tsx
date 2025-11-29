@@ -174,17 +174,17 @@ export default function ParentsPage() {
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Loading parents...</div>
           ) : filteredParents && filteredParents.length > 0 ? (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
+            <div className="rounded-md border overflow-x-auto shadow-sm">
+              <Table className="min-w-[900px]">
+                <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead>Parent</TableHead>
-                    <TableHead>Occupation</TableHead>
-                    <TableHead>Children</TableHead>
-                    <TableHead>Emergency Contact</TableHead>
-                    <TableHead>Notifications</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="font-semibold">Parent</TableHead>
+                    <TableHead className="font-semibold">Occupation</TableHead>
+                    <TableHead className="font-semibold">Children</TableHead>
+                    <TableHead className="font-semibold">Emergency Contact</TableHead>
+                    <TableHead className="font-semibold">Notifications</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="text-right font-semibold">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -192,7 +192,7 @@ export default function ParentsPage() {
                     const profile = Array.isArray(parent.profiles) ? parent.profiles[0] : parent.profiles;
 
                     return (
-                      <TableRow key={parent.id}>
+                      <TableRow key={parent.id} className="hover:bg-muted/50 transition-colors">
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
