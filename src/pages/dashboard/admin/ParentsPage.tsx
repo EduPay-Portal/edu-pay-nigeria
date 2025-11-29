@@ -6,12 +6,25 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, UserPlus, Download, Filter, Phone, Users, UserCheck, Baby, TrendingUp } from 'lucide-react';
+import { Search, UserPlus, Download, Filter, Phone, Users, UserCheck, Baby, TrendingUp, Eye, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
+import { ParentDetailDialog } from '@/components/admin/ParentDetailDialog';
+import { EditParentDialog } from '@/components/admin/EditParentDialog';
+import { AddParentDialog } from '@/components/admin/AddParentDialog';
+import { ParentFilters } from '@/components/admin/ParentFilters';
 
 export default function ParentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedParent, setSelectedParent] = useState<any>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [parentToEdit, setParentToEdit] = useState<any>(null);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    childrenCount: [] as string[],
+    notificationPreference: [] as string[],
+  });
 
   // Fetch parents with profiles and children
   const { data: parents, isLoading } = useQuery({
@@ -57,12 +70,36 @@ export default function ParentsPage() {
   const filteredParents = parents?.filter(parent => {
     const profile = Array.isArray(parent.profiles) ? parent.profiles[0] : parent.profiles;
     const searchLower = searchQuery.toLowerCase();
-    return (
+    
+    // Search filter
+    const matchesSearch = 
       profile?.first_name?.toLowerCase().includes(searchLower) ||
       profile?.last_name?.toLowerCase().includes(searchLower) ||
       profile?.email?.toLowerCase().includes(searchLower) ||
-      parent.occupation?.toLowerCase().includes(searchLower)
-    );
+      parent.occupation?.toLowerCase().includes(searchLower);
+
+    if (!matchesSearch) return false;
+
+    // Children count filter
+    if (filters.childrenCount.length > 0) {
+      const childCount = parent.childrenCount;
+      const matchesCount = filters.childrenCount.some(filter => {
+        if (filter === '0') return childCount === 0;
+        if (filter === '1') return childCount === 1;
+        if (filter === '2') return childCount === 2;
+        if (filter === '3+') return childCount >= 3;
+        return false;
+      });
+      if (!matchesCount) return false;
+    }
+
+    // Notification preference filter
+    if (filters.notificationPreference.length > 0 && 
+        !filters.notificationPreference.includes(parent.notification_preference)) {
+      return false;
+    }
+
+    return true;
   });
 
   return (
@@ -106,15 +143,15 @@ export default function ParentsPage() {
               <CardDescription>View and manage parent records</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                Filter
-              </Button>
+              <ParentFilters 
+                filters={filters}
+                onFiltersChange={setFilters}
+              />
               <Button variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
-              <Button size="sm">
+              <Button size="sm" onClick={() => setAddDialogOpen(true)}>
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add Parent
               </Button>
@@ -192,7 +229,30 @@ export default function ParentsPage() {
                           <Badge variant="default" className="bg-green-500">Active</Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">View</Button>
+                          <div className="flex justify-end gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedParent(parent);
+                                setDialogOpen(true);
+                              }}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setParentToEdit(parent);
+                                setEditDialogOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -207,6 +267,23 @@ export default function ParentsPage() {
           )}
         </CardContent>
       </Card>
+
+      <ParentDetailDialog 
+        parent={selectedParent}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
+
+      <EditParentDialog 
+        parent={parentToEdit}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+      />
+
+      <AddParentDialog 
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+      />
     </div>
   );
 }
