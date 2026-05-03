@@ -35,6 +35,9 @@ ALTER TABLE public.paystack_webhook_events
   ADD COLUMN IF NOT EXISTS processed_at TIMESTAMPTZ;
 
 -- 2. Wallet auto-credit trigger (single source of truth for balance mutations)
+-- Drop legacy trigger to prevent double-crediting
+DROP TRIGGER IF EXISTS on_transaction_wallet_update ON public.transactions;
+DROP FUNCTION IF EXISTS public.update_wallet_balance() CASCADE;
 CREATE OR REPLACE FUNCTION public.apply_transaction_to_wallet()
 RETURNS TRIGGER
 LANGUAGE plpgsql
