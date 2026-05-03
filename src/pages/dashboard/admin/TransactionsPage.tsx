@@ -5,10 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Download, Filter, ArrowUpRight, ArrowDownRight, Receipt, TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { Search, Download, Filter, ArrowUpRight, ArrowDownRight, Receipt, TrendingUp, TrendingDown, Clock, RefreshCw, X, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { format } from 'date-fns';
+import { downloadReceipt } from '@/lib/receipt';
+import { toast } from 'sonner';
 
 export default function TransactionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
