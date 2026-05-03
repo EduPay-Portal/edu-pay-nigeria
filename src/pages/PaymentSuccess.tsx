@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Loader2, AlertTriangle, Download } from 'lucide-react';
+import { downloadReceipt } from '@/lib/receipt';
 
 type PollState = 'polling' | 'success' | 'timeout';
 
@@ -15,6 +16,13 @@ interface ResolvedTx {
   reference: string;
   paystack_reference: string | null;
   status: string;
+  type: string;
+  category: string;
+  payment_method: string | null;
+  payment_channel: string | null;
+  provider: string | null;
+  description: string | null;
+  created_at: string;
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -47,7 +55,7 @@ export default function PaymentSuccess() {
 
       const { data } = await supabase
         .from('transactions')
-        .select('id, amount, reference, paystack_reference, status')
+        .select('id, amount, reference, paystack_reference, status, type, category, payment_method, payment_channel, provider, description, created_at')
         .eq('paystack_reference', reference)
         .maybeSingle();
 
@@ -143,9 +151,39 @@ export default function PaymentSuccess() {
                   <span className="font-mono">{tx.reference}</span>
                 </div>
               </div>
-              <Button className="w-full" onClick={goToDashboard}>
-                Back to dashboard
-              </Button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() =>
+                    downloadReceipt({
+                      reference: tx.reference,
+                      paystackReference: tx.paystack_reference,
+                      amount: Number(tx.amount),
+                      status: tx.status,
+                      type: tx.type,
+                      category: tx.category,
+                      paymentMethod: tx.payment_method,
+                      paymentChannel: tx.payment_channel,
+                      provider: tx.provider,
+                      description: tx.description,
+                      createdAt: tx.created_at,
+                      payerName:
+                        [user?.user_metadata?.first_name, user?.user_metadata?.last_name]
+                          .filter(Boolean)
+                          .join(' ') || null,
+                      payerEmail: user?.email ?? null,
+                      walletBalanceAfter: walletBalance,
+                    })
+                  }
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download receipt
+                </Button>
+                <Button className="w-full" onClick={goToDashboard}>
+                  Back to dashboard
+                </Button>
+              </div>
             </CardContent>
           </>
         )}

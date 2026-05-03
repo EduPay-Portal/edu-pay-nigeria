@@ -1,73 +1,45 @@
-## Frontend Completion: Payment Success, Mock VA, Metadata Wiring
+## Reference Lookup + Receipt Download
 
-Three coordinated changes to finish the Paystack hardening loop in the UI/edge layer. No schema changes — the trigger-driven wallet flow from migration 011 is already live.
+Two coordinated additions. No schema changes needed — using polling instead of realtime to avoid migrations (transactions table isn't on the supabase_realtime publication, and adding it requires a migration we already have plenty of).
 
-### 1. Mock Virtual Account generator (test-mode short-circuit)
+### 1. Shared receipt PDF generator
 
-`supabase/functions/create-virtual-account/index.ts`
+New `src/lib/receipt.ts` using `jspdf` (already installed):
 
-The Paystack DVA endpoint requires the live "Dedicated Virtual Account" feature, which is disabled on this Paystack account (per existing memory `paystack/account-constraints`). Add a mock branch so the entire flow works end-to-end without it:
+- `generateReceiptPdf(data: ReceiptData): jsPDF`
+- `downloadReceipt(data)` — saves as `receipt-<reference>.pdf`
+- Branded with the navy primary `#0d4a6b` header band
+- Status pill (green for completed, amber otherwise)
+- Two-column key/value rows: amount, internal reference, Paystack reference, date, method/channel, provider, payer name + email, description, wallet balance after
+- Footer disclaimer + generation timestamp
 
-- Read `PAYSTACK_DVA_ENABLED` env (default `"false"`).
-- When disabled, skip the Paystack customer + DVA calls and synthesize:
-  - `account_number`: `TEST` + 6-char hash of `student_id` (always 10 chars total, deterministic per student)
-  - `account_name`: `TEST - {first_name} {last_name}`
-  - `bank_name`: `Test Sandbox Bank`
-  - `bank_code`: `TEST`
-  - `paystack_customer_code`: `CUS_TEST_<6char>`
-- Insert into `virtual_accounts` exactly as the live path does (the DB shape is identical, so `paystack-webhook` resolution by `account_number` still works for simulated charges).
-- Live path is preserved as-is for when the user enables DVA in production.
+### 2. Reference lookup card on Admin Transactions page
 
-This unblocks `bulk-create-virtual-accounts` and the auto-creation trigger.
+`src/pages/dashboard/admin/TransactionsPage.tsx` — add a new card above the existing table.
 
-### 2. Wire `metadata.student_id` into card top-ups
+- Input + "Look up" button → matches by `paystack_reference` first, then falls back to `reference`
+- Result card shows: status badge, amount, type/category, payer, both references, payment channel, created_at
+- `useQuery` with `refetchInterval: 3000` while a result is loaded and status is `pending` — gives near-real-time status updates without realtime channels
+- "Stop refreshing" toggle when polling
+- "Download receipt" button (uses shared generator)
+- "Clear" button to dismiss
 
-`src/hooks/usePaystackPayment.ts` and `src/components/dialogs/TopUpWalletDialog.tsx`
+The existing search box in the table stays as-is for browsing; this new card is a focused single-record lookup with live status.
 
-The shared `process-payment.ts` resolver already reads `studentId` as the secondary path. The frontend currently doesn't send it.
+### 3. Receipt download on PaymentSuccess page
 
-- Extend `PaystackConfig` with `metadata?: Record<string, unknown>`.
-- Pass `metadata` through to `window.PaystackPop.setup({ metadata: { student_id, ... } })`.
-- In `TopUpWalletDialog`, pass `metadata: { student_id: studentId ?? user.id }` when calling `initiatePayment` for the card path.
-- Generate the reference client-side as `LIVE_<timestamp>_<rand>` (so test simulations stay clearly tagged with `TEST_` and live charges have their own prefix), and pass it into both Paystack and onSuccess so we can navigate to `/payment-success?reference=…`.
+`src/pages/PaymentSuccess.tsx` — when state is `success` and `tx` is loaded:
 
-### 3. `/payment-success` polling page
-
-New file `src/pages/PaymentSuccess.tsx` + route in `src/App.tsx`.
-
-- Read `?reference=` from the URL.
-- Poll `transactions` by `paystack_reference` every 2 s for up to 20 s (10 attempts).
-- States:
-  - `polling` — spinner + "Confirming your payment…" + reference shown
-  - `success` — green check, amount, new wallet balance, "Back to Dashboard" CTA (route depends on user role)
-  - `timeout` — yellow warning, "Still processing — your wallet will update shortly. Check Transactions." with manual refresh button
-- On success, also `queryClient.invalidateQueries(['wallet'])` and `['transactions']`.
-- After redirect from Paystack inline (current dialog calls `onSuccess` with the reference), navigate via `react-router` `useNavigate` to `/payment-success?reference=…` instead of just toasting.
-
-Update `TopUpWalletDialog.handlePayment.onSuccess` to `navigate(\`/payment-success?reference=${reference}\`)` and close the dialog.
-
-Add the route to `App.tsx` inside the protected tree (any authenticated user — students, parents, admins all top up).
-
-### 4. Simulator polish (already mostly done)
-
-- The simulator already calls `simulate-payment` edge function (which uses `_shared/process-payment.ts`).
-- Add a yellow "TEST MODE" banner above the page header that reads "All payments here use TEST_ references and never touch real money."
-- Replace the existing single `Test Mode` badge — it's currently subtle.
-
-### Verification (after deploy)
-
-1. Create a student (auto-trigger creates a TEST_ virtual account)
-2. Open `/dashboard/admin/payment-simulator`, simulate ₦5,000 → wallet credited via trigger, transaction shown
-3. As a student/parent, open Top Up dialog → card path → Paystack test card → redirected to `/payment-success?reference=…` → polling resolves → balance updated
-4. Bank-transfer path shows the TEST_ account number with "sandbox" disclaimer
+- Add a "Download receipt" outline button next to "Back to dashboard"
+- Fetch additional fields (category, type, payment_method, payment_channel, provider, description, created_at) in the same poll query (extend the select)
+- Pass `walletBalanceAfter` from the wallet query we already do
+- Payer name from `user.user_metadata` / email from `user.email`
 
 ### Files touched
 
-- `supabase/functions/create-virtual-account/index.ts` — mock branch
-- `src/hooks/usePaystackPayment.ts` — metadata + reference passthrough
-- `src/components/dialogs/TopUpWalletDialog.tsx` — pass metadata, navigate to success page
-- `src/pages/PaymentSuccess.tsx` — new
-- `src/App.tsx` — register route
-- `src/pages/dashboard/admin/PaymentSimulatorPage.tsx` — TEST MODE banner
+- `src/lib/receipt.ts` — new
+- `src/pages/dashboard/admin/TransactionsPage.tsx` — new lookup card section
+- `src/pages/PaymentSuccess.tsx` — extended select + download button
+- `package.json` / `bun.lock` — `jspdf` already added
 
-Approve to switch to build mode and apply.
+Approve to apply.

@@ -5,13 +5,63 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Download, Filter, ArrowUpRight, ArrowDownRight, Receipt, TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { Search, Download, Filter, ArrowUpRight, ArrowDownRight, Receipt, TrendingUp, TrendingDown, Clock, RefreshCw, X, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { format } from 'date-fns';
+import { downloadReceipt } from '@/lib/receipt';
+import { toast } from 'sonner';
 
 export default function TransactionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [lookupInput, setLookupInput] = useState('');
+  const [activeLookup, setActiveLookup] = useState<string | null>(null);
+  const [livePolling, setLivePolling] = useState(true);
+
+  // Single-record lookup with live polling while pending
+  const lookupQuery = useQuery({
+    queryKey: ['admin-tx-lookup', activeLookup],
+    enabled: !!activeLookup,
+    refetchInterval: (query) => {
+      if (!livePolling) return false;
+      const data = query.state.data as any;
+      if (!data) return 3000;
+      return data.status === 'pending' ? 3000 : false;
+    },
+    queryFn: async () => {
+      const ref = activeLookup!.trim();
+      // Try paystack_reference first, then internal reference
+      const { data: byPs } = await supabase
+        .from('transactions')
+        .select('*, profiles:user_id(first_name, last_name, email)')
+        .eq('paystack_reference', ref)
+        .maybeSingle();
+      if (byPs) return byPs;
+      const { data: byRef } = await supabase
+        .from('transactions')
+        .select('*, profiles:user_id(first_name, last_name, email)')
+        .eq('reference', ref)
+        .maybeSingle();
+      return byRef;
+    },
+  });
+
+  const handleLookup = () => {
+    const v = lookupInput.trim();
+    if (!v) {
+      toast.error('Enter a reference to look up');
+      return;
+    }
+    setLivePolling(true);
+    setActiveLookup(v);
+  };
+
+  const lookupResult = lookupQuery.data as any;
+  const lookupProfile = lookupResult
+    ? Array.isArray(lookupResult.profiles)
+      ? lookupResult.profiles[0]
+      : lookupResult.profiles
+    : null;
 
   // Fetch all transactions
   const { data: transactions, isLoading } = useQuery({
@@ -114,6 +164,155 @@ export default function TransactionsPage() {
           icon={Clock}
         />
       </div>
+
+      {/* Reference Lookup */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Reference Lookup</CardTitle>
+          <CardDescription>
+            Search by Paystack reference or internal reference. Status updates live every 3s while pending.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="e.g. TEST_abc123 or TXN-20260503-000123"
+                className="pl-10 font-mono"
+                value={lookupInput}
+                onChange={(e) => setLookupInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+              />
+            </div>
+            <Button onClick={handleLookup} disabled={lookupQuery.isFetching}>
+              {lookupQuery.isFetching ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4 mr-2" />
+              )}
+              Look up
+            </Button>
+            {activeLookup && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setActiveLookup(null);
+                  setLookupInput('');
+                }}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Clear
+              </Button>
+            )}
+          </div>
+
+          {activeLookup && lookupQuery.isLoading && (
+            <div className="text-sm text-muted-foreground">Searching…</div>
+          )}
+
+          {activeLookup && !lookupQuery.isLoading && !lookupResult && (
+            <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+              No transaction found for <span className="font-mono">{activeLookup}</span>.
+            </div>
+          )}
+
+          {lookupResult && (
+            <div className="rounded-md border p-4 space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-2xl font-bold">
+                    {lookupResult.type === 'credit' ? '+' : '-'}₦
+                    {Number(lookupResult.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                  </div>
+                  <div className="text-sm text-muted-foreground capitalize">
+                    {lookupResult.type} • {String(lookupResult.category).replace('_', ' ')}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge className={getStatusColor(lookupResult.status)}>{lookupResult.status}</Badge>
+                  {lookupResult.status === 'pending' && livePolling && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <RefreshCw className="h-3 w-3 animate-spin" /> live
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <div className="text-muted-foreground">Internal reference</div>
+                  <div className="font-mono break-all">{lookupResult.reference}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Paystack reference</div>
+                  <div className="font-mono break-all">{lookupResult.paystack_reference || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Payer</div>
+                  <div className="font-medium">
+                    {lookupProfile?.first_name} {lookupProfile?.last_name}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{lookupProfile?.email}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Channel</div>
+                  <div className="capitalize">
+                    {(lookupResult.payment_channel || lookupResult.payment_method || lookupResult.provider || '—').replace('_', ' ')}
+                  </div>
+                </div>
+                <div className="sm:col-span-2">
+                  <div className="text-muted-foreground">Created</div>
+                  <div>{format(new Date(lookupResult.created_at), 'MMM dd, yyyy HH:mm:ss')}</div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => lookupQuery.refetch()}
+                  disabled={lookupQuery.isFetching}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${lookupQuery.isFetching ? 'animate-spin' : ''}`} />
+                  Refresh now
+                </Button>
+                {lookupResult.status === 'pending' && (
+                  <Button variant="outline" size="sm" onClick={() => setLivePolling((v) => !v)}>
+                    {livePolling ? 'Pause live updates' : 'Resume live updates'}
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    downloadReceipt({
+                      reference: lookupResult.reference,
+                      paystackReference: lookupResult.paystack_reference,
+                      amount: Number(lookupResult.amount),
+                      status: lookupResult.status,
+                      type: lookupResult.type,
+                      category: lookupResult.category,
+                      paymentMethod: lookupResult.payment_method,
+                      paymentChannel: lookupResult.payment_channel,
+                      provider: lookupResult.provider,
+                      description: lookupResult.description,
+                      createdAt: lookupResult.created_at,
+                      payerName:
+                        [lookupProfile?.first_name, lookupProfile?.last_name]
+                          .filter(Boolean)
+                          .join(' ') || null,
+                      payerEmail: lookupProfile?.email ?? null,
+                    })
+                  }
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download receipt
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Transactions Table */}
       <Card>
