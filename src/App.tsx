@@ -10,6 +10,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import StudentDashboard from "./pages/dashboard/StudentDashboard";
 import ParentDashboard from "./pages/dashboard/ParentDashboard";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
