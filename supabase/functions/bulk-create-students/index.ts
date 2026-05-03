@@ -90,7 +90,7 @@ serve(async (req) => {
         const regNo = record["REG NO"];
         const schoolFees = parseFloat((record["SCHOOL FEES"] || "0").replace(/,/g, '')) || 0;
         const debt = parseFloat((record["DEBTS"] || "0").replace(/,/g, '')) || 0;
-        const membershipStatus = record["MEMBER/NMEMBER"] === "MEMBER" ? "MEMBER" : "NON_MEMBER";
+        const membershipStatus = record["MEMBER/NMEMBER"] === "MEMBER" ? "MEMBER" : "NMEMBER";
         const boardingStatus = record["DAY/BOARDER"] === "BOARDER" ? "BOARDER" : "DAY";
         
         // Derive parent fields from surname
