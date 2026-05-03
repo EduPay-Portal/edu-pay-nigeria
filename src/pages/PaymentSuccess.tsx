@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Loader2, AlertTriangle, Download } from 'lucide-react';
+import { downloadReceipt } from '@/lib/receipt';
 
 type PollState = 'polling' | 'success' | 'timeout';
 
@@ -15,6 +16,13 @@ interface ResolvedTx {
   reference: string;
   paystack_reference: string | null;
   status: string;
+  type: string;
+  category: string;
+  payment_method: string | null;
+  payment_channel: string | null;
+  provider: string | null;
+  description: string | null;
+  created_at: string;
 }
 
 const POLL_INTERVAL_MS = 2000;
