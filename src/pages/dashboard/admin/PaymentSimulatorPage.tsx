@@ -214,6 +214,16 @@ export default function PaymentSimulatorPage() {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-lg border border-warning/40 bg-warning/10 p-4 flex items-start gap-3">
+        <AlertCircle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+        <div className="text-sm">
+          <p className="font-semibold text-warning-foreground">TEST MODE</p>
+          <p className="text-muted-foreground">
+            All payments here use <code className="font-mono">TEST_</code> references and never touch real money or the live Paystack account.
+          </p>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
