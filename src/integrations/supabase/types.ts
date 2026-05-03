@@ -146,48 +146,63 @@ export type Database = {
       student_profiles: {
         Row: {
           admission_number: string
+          boarding_status: string | null
           class_level: string
           created_at: string | null
           created_from_import: boolean | null
           debt: number | null
+          debt_balance: number | null
           id: string
           import_batch_id: string | null
           import_notes: string | null
           is_boarder: boolean | null
           is_member: boolean | null
+          membership_status: string | null
           parent_id: string | null
+          registration_number: string | null
+          school_fees: number | null
           section: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           admission_number: string
+          boarding_status?: string | null
           class_level: string
           created_at?: string | null
           created_from_import?: boolean | null
           debt?: number | null
+          debt_balance?: number | null
           id?: string
           import_batch_id?: string | null
           import_notes?: string | null
           is_boarder?: boolean | null
           is_member?: boolean | null
+          membership_status?: string | null
           parent_id?: string | null
+          registration_number?: string | null
+          school_fees?: number | null
           section?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           admission_number?: string
+          boarding_status?: string | null
           class_level?: string
           created_at?: string | null
           created_from_import?: boolean | null
           debt?: number | null
+          debt_balance?: number | null
           id?: string
           import_batch_id?: string | null
           import_notes?: string | null
           is_boarder?: boolean | null
           is_member?: boolean | null
+          membership_status?: string | null
           parent_id?: string | null
+          registration_number?: string | null
+          school_fees?: number | null
           section?: string | null
           updated_at?: string | null
           user_id?: string
@@ -196,73 +211,58 @@ export type Database = {
       }
       students_import_staging: {
         Row: {
-          class_level: string | null
-          debt: number | null
+          CLASS: string | null
+          created_at: string | null
+          "DAY/BOARDER": string | null
+          DEBTS: string | null
+          error_message: string | null
           id: string
-          import_batch_id: string | null
-          imported_at: string | null
-          imported_by: string | null
-          is_boarder: boolean | null
-          is_member: boolean | null
-          names: string | null
-          notes: string | null
+          "MEMBER/NMEMBER": string | null
+          NAMES: string | null
           parent_email: string | null
-          parent_name: string | null
-          parent_phone: string | null
-          parent_uuid: string | null
+          parent_id: string | null
           processed: boolean | null
-          processed_at: string | null
-          processing_error: string | null
-          reg_no: string | null
-          sn: number | null
-          student_uuid: string | null
-          surname: string | null
+          "REG NO": string | null
+          "SCHOOL FEES": string | null
+          SN: string | null
+          student_id: string | null
+          SURNAME: string | null
         }
         Insert: {
-          class_level?: string | null
-          debt?: number | null
+          CLASS?: string | null
+          created_at?: string | null
+          "DAY/BOARDER"?: string | null
+          DEBTS?: string | null
+          error_message?: string | null
           id?: string
-          import_batch_id?: string | null
-          imported_at?: string | null
-          imported_by?: string | null
-          is_boarder?: boolean | null
-          is_member?: boolean | null
-          names?: string | null
-          notes?: string | null
+          "MEMBER/NMEMBER"?: string | null
+          NAMES?: string | null
           parent_email?: string | null
-          parent_name?: string | null
-          parent_phone?: string | null
-          parent_uuid?: string | null
+          parent_id?: string | null
           processed?: boolean | null
-          processed_at?: string | null
-          processing_error?: string | null
-          reg_no?: string | null
-          sn?: number | null
-          student_uuid?: string | null
-          surname?: string | null
+          "REG NO"?: string | null
+          "SCHOOL FEES"?: string | null
+          SN?: string | null
+          student_id?: string | null
+          SURNAME?: string | null
         }
         Update: {
-          class_level?: string | null
-          debt?: number | null
+          CLASS?: string | null
+          created_at?: string | null
+          "DAY/BOARDER"?: string | null
+          DEBTS?: string | null
+          error_message?: string | null
           id?: string
-          import_batch_id?: string | null
-          imported_at?: string | null
-          imported_by?: string | null
-          is_boarder?: boolean | null
-          is_member?: boolean | null
-          names?: string | null
-          notes?: string | null
+          "MEMBER/NMEMBER"?: string | null
+          NAMES?: string | null
           parent_email?: string | null
-          parent_name?: string | null
-          parent_phone?: string | null
-          parent_uuid?: string | null
+          parent_id?: string | null
           processed?: boolean | null
-          processed_at?: string | null
-          processing_error?: string | null
-          reg_no?: string | null
-          sn?: number | null
-          student_uuid?: string | null
-          surname?: string | null
+          "REG NO"?: string | null
+          "SCHOOL FEES"?: string | null
+          SN?: string | null
+          student_id?: string | null
+          SURNAME?: string | null
         }
         Relationships: []
       }
