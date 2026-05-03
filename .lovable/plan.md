@@ -1,68 +1,73 @@
-## Goal
+## Frontend Completion: Payment Success, Mock VA, Metadata Wiring
 
-Restore the empty Lovable Cloud database to the full project schema, then finish the remaining Paystack test-mode hardening frontend work.
+Three coordinated changes to finish the Paystack hardening loop in the UI/edge layer. No schema changes — the trigger-driven wallet flow from migration 011 is already live.
 
-## Phase 1 — Apply database schema bundle
+### 1. Mock Virtual Account generator (test-mode short-circuit)
 
-Run the SQL files in this exact order via the migration tool (one consolidated migration submission per file group, idempotent where possible):
+`supabase/functions/create-virtual-account/index.ts`
 
-1. `database_setup.sql` — base tables, enums, RLS, triggers (profiles, user_roles, wallets, transactions, student/parent/admin profiles, role-creation triggers, idempotency, balance validation).
-2. `migrations/003_paystack_virtual_accounts.sql` — `virtual_accounts` table + RLS.
-3. `migrations/004_bulk_import_infrastructure.sql` — `students_import_staging` + bulk-import helpers.
-4. `migrations/005_populate_staging_derived_columns.sql` — derived-column triggers for staging.
-5. `migrations/006_fix_rls_student_parent_profiles.sql` — RLS hardening for student/parent profiles (uses `public.has_role()`).
-6. `migrations/007_reset_bulk_import.sql` and `008_clear_staging_table.sql` — only run if staging tables exist; safe no-ops on a fresh DB.
-7. `migrations/009_auto_virtual_account_creation.sql` — DB trigger that calls the `create-virtual-account` Edge Function on student insert.
-8. `migrations/010_reconciliation_functions.sql` — reconciliation RPCs used by the Reconciliation page.
-9. `migrations/011_payment_hardening.sql` — `payment_method` + `provider` columns and the `trg_apply_transaction_to_wallet` trigger that credits/debits wallets only when `transactions.status` flips to `completed`.
+The Paystack DVA endpoint requires the live "Dedicated Virtual Account" feature, which is disabled on this Paystack account (per existing memory `paystack/account-constraints`). Add a mock branch so the entire flow works end-to-end without it:
 
-Notes:
-- Migration 011 supersedes the older `update_wallet_balance` trigger from `database_setup.sql`. The migration drops the legacy trigger before installing the hardened one to avoid double-crediting.
-- All policies use `public.has_role()` SECURITY DEFINER per project rule.
-- After apply, verify via `supabase--read_query` that `wallets`, `transactions`, `virtual_accounts`, and `students_import_staging` exist, and that `trg_apply_transaction_to_wallet` is present on `transactions`.
-- Run `supabase--linter` and resolve any critical findings (RLS gaps, function search_path).
+- Read `PAYSTACK_DVA_ENABLED` env (default `"false"`).
+- When disabled, skip the Paystack customer + DVA calls and synthesize:
+  - `account_number`: `TEST` + 6-char hash of `student_id` (always 10 chars total, deterministic per student)
+  - `account_name`: `TEST - {first_name} {last_name}`
+  - `bank_name`: `Test Sandbox Bank`
+  - `bank_code`: `TEST`
+  - `paystack_customer_code`: `CUS_TEST_<6char>`
+- Insert into `virtual_accounts` exactly as the live path does (the DB shape is identical, so `paystack-webhook` resolution by `account_number` still works for simulated charges).
+- Live path is preserved as-is for when the user enables DVA in production.
 
-## Phase 2 — Auth configuration
+This unblocks `bulk-create-virtual-accounts` and the auto-creation trigger.
 
-- Confirm email auto-confirm stays OFF (per project rule).
-- Google OAuth: leave disabled for now unless user requests; auth pages already exist.
+### 2. Wire `metadata.student_id` into card top-ups
 
-## Phase 3 — Frontend pieces (Paystack hardening)
+`src/hooks/usePaystackPayment.ts` and `src/components/dialogs/TopUpWalletDialog.tsx`
 
-1. **Mock Virtual Account generator (test mode)**
-   - In `create-virtual-account` Edge Function, when `PAYSTACK_SECRET_KEY` starts with `sk_test_` AND Paystack DVA is unavailable, generate a deterministic mock account: `account_number = "TEST" + last 6 of student id`, bank `Test Bank`, `provider = 'mock'`. Persist into `virtual_accounts`.
-   - Surface a "Test Mode" badge in `VirtualAccountCard` and `VirtualAccountStatus`.
+The shared `process-payment.ts` resolver already reads `studentId` as the secondary path. The frontend currently doesn't send it.
 
-2. **Metadata wiring on Paystack Inline (card top-up)**
-   - In `usePaystackPayment`, ensure `metadata.student_id` (and `wallet_id`, `category`) is always sent. The shared processor resolves payments via `account_number` → `metadata.student_id` → reject.
-   - Generate references with `TEST_` prefix when in test mode so the simulator and live webhook can be distinguished.
+- Extend `PaystackConfig` with `metadata?: Record<string, unknown>`.
+- Pass `metadata` through to `window.PaystackPop.setup({ metadata: { student_id, ... } })`.
+- In `TopUpWalletDialog`, pass `metadata: { student_id: studentId ?? user.id }` when calling `initiatePayment` for the card path.
+- Generate the reference client-side as `LIVE_<timestamp>_<rand>` (so test simulations stay clearly tagged with `TEST_` and live charges have their own prefix), and pass it into both Paystack and onSuccess so we can navigate to `/payment-success?reference=…`.
 
-3. **/payment-success page**
-   - New route `src/pages/PaymentSuccess.tsx`. Reads `?reference=` from URL, polls `transactions` by reference for up to ~20s, shows pending → success → failure states. Routes back to dashboard.
-   - Register route in `src/App.tsx`.
+### 3. `/payment-success` polling page
 
-4. **Payment Simulator polish** (`PaymentSimulatorPage`)
-   - Confirm it calls `simulate-payment` Edge Function (which uses the shared processor). Show resulting transaction + wallet delta. Add visible "TEST MODE ONLY" banner.
+New file `src/pages/PaymentSuccess.tsx` + route in `src/App.tsx`.
 
-5. **Wallet/Transaction UI sanity**
-   - Verify `WalletCard`, `TransactionTable`, `TopUpWalletDialog` render without type errors against regenerated `src/integrations/supabase/types.ts`.
-   - Ensure no client code writes directly to `wallets.balance` (must flow through `transactions` + trigger).
+- Read `?reference=` from the URL.
+- Poll `transactions` by `paystack_reference` every 2 s for up to 20 s (10 attempts).
+- States:
+  - `polling` — spinner + "Confirming your payment…" + reference shown
+  - `success` — green check, amount, new wallet balance, "Back to Dashboard" CTA (route depends on user role)
+  - `timeout` — yellow warning, "Still processing — your wallet will update shortly. Check Transactions." with manual refresh button
+- On success, also `queryClient.invalidateQueries(['wallet'])` and `['transactions']`.
+- After redirect from Paystack inline (current dialog calls `onSuccess` with the reference), navigate via `react-router` `useNavigate` to `/payment-success?reference=…` instead of just toasting.
 
-## Phase 4 — Verification
+Update `TopUpWalletDialog.handlePayment.onSuccess` to `navigate(\`/payment-success?reference=${reference}\`)` and close the dialog.
 
-- Manual flow: create test student → VA auto-created (mock in test mode) → simulate payment → wallet balance updates exactly once → transaction visible in admin + parent views.
-- Webhook flow: POST a signed test payload to `paystack-webhook`; confirm HMAC verification, idempotency (replay rejected), and trigger-driven wallet credit.
-- Run `supabase--linter` again; address any new findings.
+Add the route to `App.tsx` inside the protected tree (any authenticated user — students, parents, admins all top up).
 
-## Technical details
+### 4. Simulator polish (already mostly done)
 
-- No edits to `src/integrations/supabase/client.ts` or `types.ts` (auto-generated).
-- Migration 011 drop/recreate sequence: `DROP TRIGGER IF EXISTS on_transaction_wallet_update ON public.transactions;` before creating `trg_apply_transaction_to_wallet`.
-- Edge Functions affected: `create-virtual-account`, `paystack-webhook`, `simulate-payment`, plus `_shared/process-payment.ts` (already in place).
-- No additional secrets needed; `PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY` are already set.
+- The simulator already calls `simulate-payment` edge function (which uses `_shared/process-payment.ts`).
+- Add a yellow "TEST MODE" banner above the page header that reads "All payments here use TEST_ references and never touch real money."
+- Replace the existing single `Test Mode` badge — it's currently subtle.
 
-## Out of scope
+### Verification (after deploy)
 
-- Switching to live Paystack keys.
-- Removing Lovable Cloud or porting to an external Supabase project.
-- Google OAuth setup.
+1. Create a student (auto-trigger creates a TEST_ virtual account)
+2. Open `/dashboard/admin/payment-simulator`, simulate ₦5,000 → wallet credited via trigger, transaction shown
+3. As a student/parent, open Top Up dialog → card path → Paystack test card → redirected to `/payment-success?reference=…` → polling resolves → balance updated
+4. Bank-transfer path shows the TEST_ account number with "sandbox" disclaimer
+
+### Files touched
+
+- `supabase/functions/create-virtual-account/index.ts` — mock branch
+- `src/hooks/usePaystackPayment.ts` — metadata + reference passthrough
+- `src/components/dialogs/TopUpWalletDialog.tsx` — pass metadata, navigate to success page
+- `src/pages/PaymentSuccess.tsx` — new
+- `src/App.tsx` — register route
+- `src/pages/dashboard/admin/PaymentSimulatorPage.tsx` — TEST MODE banner
+
+Approve to switch to build mode and apply.

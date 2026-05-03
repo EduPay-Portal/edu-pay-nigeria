@@ -124,6 +124,54 @@ serve(async (req) => {
       );
     }
 
+    // Test-mode short-circuit: when Paystack DVA isn't enabled on the account,
+    // synthesize a deterministic mock virtual account so the rest of the flow
+    // (webhook resolution, simulator, top-ups) keeps working end-to-end.
+    const dvaEnabled = (Deno.env.get('PAYSTACK_DVA_ENABLED') ?? 'false').toLowerCase() === 'true';
+    if (!dvaEnabled) {
+      console.log('PAYSTACK_DVA_ENABLED=false → generating mock TEST virtual account');
+      // Deterministic 6-char hex from student_id
+      const encoder = new TextEncoder();
+      const hashBuf = await crypto.subtle.digest('SHA-256', encoder.encode(student_id));
+      const hashHex = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+      const suffix = hashHex.slice(0, 6).toUpperCase();
+      const mockAccountNumber = `TEST${suffix}`;
+      const mockCustomerCode = `CUS_TEST_${suffix}`;
+
+      const { data: mockVa, error: mockErr } = await supabase
+        .from('virtual_accounts')
+        .insert({
+          student_id,
+          paystack_customer_code: mockCustomerCode,
+          account_number: mockAccountNumber,
+          account_name: `TEST - ${first_name} ${last_name}`.trim(),
+          bank_name: 'Test Sandbox Bank',
+          bank_code: 'TEST',
+          is_active: true,
+          provider: 'paystack',
+        })
+        .select()
+        .single();
+
+      if (mockErr) {
+        console.error('Mock VA insert error:', mockErr);
+        throw new Error(`Failed to save mock virtual account: ${mockErr.message}`);
+      }
+
+      return new Response(
+        JSON.stringify({
+          message: 'Mock virtual account created (test mode)',
+          test_mode: true,
+          account: {
+            account_number: mockAccountNumber,
+            account_name: mockVa.account_name,
+            bank_name: 'Test Sandbox Bank',
+          },
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Step 1: Create Paystack customer
     console.log('Creating Paystack customer...');
     const customerResponse = await fetch('https://api.paystack.co/customer', {
