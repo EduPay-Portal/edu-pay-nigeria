@@ -151,9 +151,39 @@ export default function PaymentSuccess() {
                   <span className="font-mono">{tx.reference}</span>
                 </div>
               </div>
-              <Button className="w-full" onClick={goToDashboard}>
-                Back to dashboard
-              </Button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() =>
+                    downloadReceipt({
+                      reference: tx.reference,
+                      paystackReference: tx.paystack_reference,
+                      amount: Number(tx.amount),
+                      status: tx.status,
+                      type: tx.type,
+                      category: tx.category,
+                      paymentMethod: tx.payment_method,
+                      paymentChannel: tx.payment_channel,
+                      provider: tx.provider,
+                      description: tx.description,
+                      createdAt: tx.created_at,
+                      payerName:
+                        [user?.user_metadata?.first_name, user?.user_metadata?.last_name]
+                          .filter(Boolean)
+                          .join(' ') || null,
+                      payerEmail: user?.email ?? null,
+                      walletBalanceAfter: walletBalance,
+                    })
+                  }
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download receipt
+                </Button>
+                <Button className="w-full" onClick={goToDashboard}>
+                  Back to dashboard
+                </Button>
+              </div>
             </CardContent>
           </>
         )}
