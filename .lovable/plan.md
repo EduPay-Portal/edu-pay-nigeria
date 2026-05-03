@@ -1,45 +1,27 @@
-## Reference Lookup + Receipt Download
+## Recreate your admin account
 
-Two coordinated additions. No schema changes needed — using polling instead of realtime to avoid migrations (transactions table isn't on the supabase_realtime publication, and adding it requires a migration we already have plenty of).
+Your previous user no longer exists in the auth database. I'll recreate it directly using the backend service role so you can sign in immediately — no email confirmation needed.
 
-### 1. Shared receipt PDF generator
+### What I'll do
 
-New `src/lib/receipt.ts` using `jspdf` (already installed):
+1. **Create a one-off Node script** (run from the sandbox, not committed) that:
+   - Uses the Supabase service role key to call `auth.admin.createUser` with:
+     - email: `skilldigitalskillhints@gmail.com`
+     - password: `#Trophy1976##`
+     - `email_confirm: true` (so you can sign in immediately)
+     - user metadata: `{ first_name: "Admin", last_name: "User", role: "admin" }`
+   - The existing `handle_new_user` trigger will auto-create the `profiles` row and the `user_roles` row with `admin`.
+   - The existing `create_role_profile` trigger will auto-create the `admin_profiles` row.
 
-- `generateReceiptPdf(data: ReceiptData): jsPDF`
-- `downloadReceipt(data)` — saves as `receipt-<reference>.pdf`
-- Branded with the navy primary `#0d4a6b` header band
-- Status pill (green for completed, amber otherwise)
-- Two-column key/value rows: amount, internal reference, Paystack reference, date, method/channel, provider, payer name + email, description, wallet balance after
-- Footer disclaimer + generation timestamp
+2. **Verify** by querying `auth.users`, `user_roles`, and `admin_profiles` to confirm everything is wired up.
 
-### 2. Reference lookup card on Admin Transactions page
+3. **Delete the script** after running so credentials never sit in the repo.
 
-`src/pages/dashboard/admin/TransactionsPage.tsx` — add a new card above the existing table.
+### After this
 
-- Input + "Look up" button → matches by `paystack_reference` first, then falls back to `reference`
-- Result card shows: status badge, amount, type/category, payer, both references, payment channel, created_at
-- `useQuery` with `refetchInterval: 3000` while a result is loaded and status is `pending` — gives near-real-time status updates without realtime channels
-- "Stop refreshing" toggle when polling
-- "Download receipt" button (uses shared generator)
-- "Clear" button to dismiss
+You'll be able to sign in at `/auth` with your credentials and land on the admin dashboard.
 
-The existing search box in the table stays as-is for browsing; this new card is a focused single-record lookup with live status.
+### Notes
 
-### 3. Receipt download on PaymentSuccess page
-
-`src/pages/PaymentSuccess.tsx` — when state is `success` and `tx` is loaded:
-
-- Add a "Download receipt" outline button next to "Back to dashboard"
-- Fetch additional fields (category, type, payment_method, payment_channel, provider, description, created_at) in the same poll query (extend the select)
-- Pass `walletBalanceAfter` from the wallet query we already do
-- Payer name from `user.user_metadata` / email from `user.email`
-
-### Files touched
-
-- `src/lib/receipt.ts` — new
-- `src/pages/dashboard/admin/TransactionsPage.tsx` — new lookup card section
-- `src/pages/PaymentSuccess.tsx` — extended select + download button
-- `package.json` / `bun.lock` — `jspdf` already added
-
-Approve to apply.
+- No code or migration changes — purely a one-time data operation.
+- If a user with that email somehow already exists in a stale state, I'll delete and recreate it.
