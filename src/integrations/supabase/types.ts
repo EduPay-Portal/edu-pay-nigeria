@@ -44,6 +44,7 @@ export type Database = {
       parent_profiles: {
         Row: {
           created_at: string | null
+          created_from_import: boolean | null
           emergency_contact: string | null
           id: string
           notification_preference:
@@ -55,6 +56,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          created_from_import?: boolean | null
           emergency_contact?: string | null
           id?: string
           notification_preference?:
@@ -66,6 +68,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          created_from_import?: boolean | null
           emergency_contact?: string | null
           id?: string
           notification_preference?:
@@ -74,6 +77,42 @@ export type Database = {
           occupation?: string | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      paystack_webhook_events: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          payload: Json
+          paystack_reference: string
+          processed: boolean | null
+          processed_at: string | null
+          signature_valid: boolean
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          payload: Json
+          paystack_reference: string
+          processed?: boolean | null
+          processed_at?: string | null
+          signature_valid: boolean
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          paystack_reference?: string
+          processed?: boolean | null
+          processed_at?: string | null
+          signature_valid?: boolean
         }
         Relationships: []
       }
@@ -109,7 +148,13 @@ export type Database = {
           admission_number: string
           class_level: string
           created_at: string | null
+          created_from_import: boolean | null
+          debt: number | null
           id: string
+          import_batch_id: string | null
+          import_notes: string | null
+          is_boarder: boolean | null
+          is_member: boolean | null
           parent_id: string | null
           section: string | null
           updated_at: string | null
@@ -119,7 +164,13 @@ export type Database = {
           admission_number: string
           class_level: string
           created_at?: string | null
+          created_from_import?: boolean | null
+          debt?: number | null
           id?: string
+          import_batch_id?: string | null
+          import_notes?: string | null
+          is_boarder?: boolean | null
+          is_member?: boolean | null
           parent_id?: string | null
           section?: string | null
           updated_at?: string | null
@@ -129,11 +180,89 @@ export type Database = {
           admission_number?: string
           class_level?: string
           created_at?: string | null
+          created_from_import?: boolean | null
+          debt?: number | null
           id?: string
+          import_batch_id?: string | null
+          import_notes?: string | null
+          is_boarder?: boolean | null
+          is_member?: boolean | null
           parent_id?: string | null
           section?: string | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      students_import_staging: {
+        Row: {
+          class_level: string | null
+          debt: number | null
+          id: string
+          import_batch_id: string | null
+          imported_at: string | null
+          imported_by: string | null
+          is_boarder: boolean | null
+          is_member: boolean | null
+          names: string | null
+          notes: string | null
+          parent_email: string | null
+          parent_name: string | null
+          parent_phone: string | null
+          parent_uuid: string | null
+          processed: boolean | null
+          processed_at: string | null
+          processing_error: string | null
+          reg_no: string | null
+          sn: number | null
+          student_uuid: string | null
+          surname: string | null
+        }
+        Insert: {
+          class_level?: string | null
+          debt?: number | null
+          id?: string
+          import_batch_id?: string | null
+          imported_at?: string | null
+          imported_by?: string | null
+          is_boarder?: boolean | null
+          is_member?: boolean | null
+          names?: string | null
+          notes?: string | null
+          parent_email?: string | null
+          parent_name?: string | null
+          parent_phone?: string | null
+          parent_uuid?: string | null
+          processed?: boolean | null
+          processed_at?: string | null
+          processing_error?: string | null
+          reg_no?: string | null
+          sn?: number | null
+          student_uuid?: string | null
+          surname?: string | null
+        }
+        Update: {
+          class_level?: string | null
+          debt?: number | null
+          id?: string
+          import_batch_id?: string | null
+          imported_at?: string | null
+          imported_by?: string | null
+          is_boarder?: boolean | null
+          is_member?: boolean | null
+          names?: string | null
+          notes?: string | null
+          parent_email?: string | null
+          parent_name?: string | null
+          parent_phone?: string | null
+          parent_uuid?: string | null
+          processed?: boolean | null
+          processed_at?: string | null
+          processing_error?: string | null
+          reg_no?: string | null
+          sn?: number | null
+          student_uuid?: string | null
+          surname?: string | null
         }
         Relationships: []
       }
@@ -146,11 +275,16 @@ export type Database = {
           id: string
           idempotency_key: string | null
           metadata: Json | null
+          payment_channel: string | null
+          payment_method: string | null
+          paystack_reference: string | null
+          provider: string | null
           reference: string
           status: Database["public"]["Enums"]["transaction_status"] | null
           type: Database["public"]["Enums"]["transaction_type"]
           user_id: string
           wallet_id: string
+          webhook_data: Json | null
         }
         Insert: {
           amount: number
@@ -160,11 +294,16 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           metadata?: Json | null
+          payment_channel?: string | null
+          payment_method?: string | null
+          paystack_reference?: string | null
+          provider?: string | null
           reference: string
           status?: Database["public"]["Enums"]["transaction_status"] | null
           type: Database["public"]["Enums"]["transaction_type"]
           user_id: string
           wallet_id: string
+          webhook_data?: Json | null
         }
         Update: {
           amount?: number
@@ -174,11 +313,16 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           metadata?: Json | null
+          payment_channel?: string | null
+          payment_method?: string | null
+          paystack_reference?: string | null
+          provider?: string | null
           reference?: string
           status?: Database["public"]["Enums"]["transaction_status"] | null
           type?: Database["public"]["Enums"]["transaction_type"]
           user_id?: string
           wallet_id?: string
+          webhook_data?: Json | null
         }
         Relationships: [
           {
@@ -208,6 +352,54 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      virtual_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          bank_code: string
+          bank_name: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_payment_at: string | null
+          paystack_customer_code: string | null
+          provider: string | null
+          student_id: string
+          total_received: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          bank_code: string
+          bank_name: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_payment_at?: string | null
+          paystack_customer_code?: string | null
+          provider?: string | null
+          student_id: string
+          total_received?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          bank_code?: string
+          bank_name?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_payment_at?: string | null
+          paystack_customer_code?: string | null
+          provider?: string | null
+          student_id?: string
+          total_received?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -244,12 +436,70 @@ export type Database = {
     }
     Functions: {
       generate_transaction_reference: { Args: never; Returns: string }
+      get_duplicate_transactions: {
+        Args: never
+        Returns: {
+          count: number
+          paystack_reference: string
+          total_amount: number
+          transactions: Json
+        }[]
+      }
+      get_import_staging_stats: {
+        Args: never
+        Returns: {
+          error_records: number
+          pending_records: number
+          processed_records: number
+          total_records: number
+          unique_batches: number
+        }[]
+      }
+      get_orphaned_transactions: {
+        Args: never
+        Returns: {
+          amount: number
+          created_at: string
+          id: string
+          paystack_reference: string
+          reference: string
+          status: string
+          user_id: string
+        }[]
+      }
+      get_reconciliation_summary: {
+        Args: never
+        Returns: {
+          count: number
+          metric: string
+          total_amount: number
+        }[]
+      }
+      get_unmatched_webhooks: {
+        Args: never
+        Returns: {
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          paystack_reference: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      mark_staging_processed: {
+        Args: {
+          error_msg?: string
+          p_uuid?: string
+          s_uuid: string
+          staging_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
