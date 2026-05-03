@@ -6,6 +6,7 @@ interface PaystackConfig {
   email: string;
   amount: number;
   reference?: string;
+  metadata?: Record<string, unknown>;
   onSuccess: (reference: string) => void;
   onClose: () => void;
 }
@@ -38,12 +39,16 @@ export function usePaystackPayment() {
 
     setIsProcessing(true);
 
+    const reference =
+      config.reference || `LIVE_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+
     const handler = window.PaystackPop.setup({
       key: publicKey,
       email: config.email,
       amount: Math.round(config.amount * 100),
       currency: 'NGN',
-      ref: config.reference || `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      ref: reference,
+      metadata: config.metadata ?? {},
       onClose: () => {
         setIsProcessing(false);
         config.onClose();
