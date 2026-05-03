@@ -17,7 +17,7 @@ export interface Transaction {
   description: string | null;
   reference: string;
   status: 'pending' | 'completed' | 'failed' | 'reversed';
-  metadata: Record<string, any> | null;
+  metadata: any;
   created_at: string;
 }
 
