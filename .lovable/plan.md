@@ -1,27 +1,25 @@
-## Recreate your admin account
+## Why the button is disabled
 
-Your previous user no longer exists in the auth database. I'll recreate it directly using the backend service role so you can sign in immediately — no email confirmation needed.
+The Bulk Import page reads counts from the `get_import_staging_stats()` database function. That function references two columns that don't exist on `students_import_staging`:
 
-### What I'll do
+- `processing_error` — actual column is `error_message`
+- `import_batch_id` — column does not exist
 
-1. **Create a one-off Node script** (run from the sandbox, not committed) that:
-   - Uses the Supabase service role key to call `auth.admin.createUser` with:
-     - email: `skilldigitalskillhints@gmail.com`
-     - password: `#Trophy1976##`
-     - `email_confirm: true` (so you can sign in immediately)
-     - user metadata: `{ first_name: "Admin", last_name: "User", role: "admin" }`
-   - The existing `handle_new_user` trigger will auto-create the `profiles` row and the `user_roles` row with `admin`.
-   - The existing `create_role_profile` trigger will auto-create the `admin_profiles` row.
+The call throws, the page falls back to `pending = 0`, and "Process All Pending" is disabled — even though staging actually contains **412 pending rows**.
 
-2. **Verify** by querying `auth.users`, `user_roles`, and `admin_profiles` to confirm everything is wired up.
+## Fix
 
-3. **Delete the script** after running so credentials never sit in the repo.
+1. **Migration: rewrite `get_import_staging_stats()`** to use the real columns:
+   - `processed_records` = `processed = true AND error_message IS NULL`
+   - `pending_records` = `processed = false`
+   - `error_records` = `error_message IS NOT NULL`
+   - Drop `unique_batches` (or return `0::bigint`) since `import_batch_id` doesn't exist on this table.
+   - Update the page's TypeScript shape if needed.
 
-### After this
+2. **Verify** the RPC returns `{ total: 412, pending: 412, processed: 0, errors: 0 }` and the "Process All Pending (412)" button becomes enabled.
 
-You'll be able to sign in at `/auth` with your credentials and land on the admin dashboard.
+3. **Run the import**: click Process All Pending. The `bulk-create-students` edge function processes rows sequentially, creating auth users → triggers create profiles, roles, wallets → DB trigger queues virtual account creation via Paystack. Watch the Processed/Errors counters; use Retry Failed for any rows that error.
 
-### Notes
+4. **Post-import sanity check** with read-only queries: counts in `student_profiles`, `parent_profiles`, `wallets`, `virtual_accounts`.
 
-- No code or migration changes — purely a one-time data operation.
-- If a user with that email somehow already exists in a stale state, I'll delete and recreate it.
+No changes to the edge function itself — it's the stats wiring that's broken, not the processing.
