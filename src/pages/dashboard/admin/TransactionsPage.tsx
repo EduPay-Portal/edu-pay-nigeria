@@ -14,6 +14,54 @@ import { toast } from 'sonner';
 
 export default function TransactionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [lookupInput, setLookupInput] = useState('');
+  const [activeLookup, setActiveLookup] = useState<string | null>(null);
+  const [livePolling, setLivePolling] = useState(true);
+
+  // Single-record lookup with live polling while pending
+  const lookupQuery = useQuery({
+    queryKey: ['admin-tx-lookup', activeLookup],
+    enabled: !!activeLookup,
+    refetchInterval: (query) => {
+      if (!livePolling) return false;
+      const data = query.state.data as any;
+      if (!data) return 3000;
+      return data.status === 'pending' ? 3000 : false;
+    },
+    queryFn: async () => {
+      const ref = activeLookup!.trim();
+      // Try paystack_reference first, then internal reference
+      const { data: byPs } = await supabase
+        .from('transactions')
+        .select('*, profiles:user_id(first_name, last_name, email)')
+        .eq('paystack_reference', ref)
+        .maybeSingle();
+      if (byPs) return byPs;
+      const { data: byRef } = await supabase
+        .from('transactions')
+        .select('*, profiles:user_id(first_name, last_name, email)')
+        .eq('reference', ref)
+        .maybeSingle();
+      return byRef;
+    },
+  });
+
+  const handleLookup = () => {
+    const v = lookupInput.trim();
+    if (!v) {
+      toast.error('Enter a reference to look up');
+      return;
+    }
+    setLivePolling(true);
+    setActiveLookup(v);
+  };
+
+  const lookupResult = lookupQuery.data as any;
+  const lookupProfile = lookupResult
+    ? Array.isArray(lookupResult.profiles)
+      ? lookupResult.profiles[0]
+      : lookupResult.profiles
+    : null;
 
   // Fetch all transactions
   const { data: transactions, isLoading } = useQuery({
