@@ -55,7 +55,7 @@ export default function PaymentSuccess() {
 
       const { data } = await supabase
         .from('transactions')
-        .select('id, amount, reference, paystack_reference, status')
+        .select('id, amount, reference, paystack_reference, status, type, category, payment_method, payment_channel, provider, description, created_at')
         .eq('paystack_reference', reference)
         .maybeSingle();
 
