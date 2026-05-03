@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ interface TopUpWalletDialogProps {
 
 export function TopUpWalletDialog({ open, onOpenChange, studentId, studentName }: TopUpWalletDialogProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { initiatePayment, isProcessing } = usePaystackPayment();
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'transfer'>('card');
@@ -37,13 +39,18 @@ export function TopUpWalletDialog({ open, onOpenChange, studentId, studentName }
     }
 
     if (paymentMethod === 'card') {
+      const targetStudentId = studentId ?? user?.id;
       initiatePayment({
         email: user?.email || '',
         amount: amountValue,
+        metadata: {
+          student_id: targetStudentId,
+          source: 'wallet_topup_dialog',
+        },
         onSuccess: (reference) => {
-          toast.success('Payment successful! Your wallet will be updated shortly.');
           onOpenChange(false);
           setAmount('');
+          navigate(`/payment-success?reference=${encodeURIComponent(reference)}`);
         },
         onClose: () => {
           toast.info('Payment cancelled');
