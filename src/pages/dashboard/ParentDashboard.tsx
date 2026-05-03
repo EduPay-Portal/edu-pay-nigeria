@@ -60,8 +60,10 @@ export default function ParentDashboard() {
     enabled: children.length > 0,
   });
 
-  const totalBalance = children.reduce((sum, child) => {
-    return sum + (child.wallets?.[0]?.balance || 0);
+  const totalBalance = children.reduce((sum, child: any) => {
+    const wallets = child.wallets;
+    const balance = Array.isArray(wallets) ? (wallets[0]?.balance || 0) : (wallets?.balance || 0);
+    return sum + Number(balance);
   }, 0);
 
   const totalSpent = transactions
