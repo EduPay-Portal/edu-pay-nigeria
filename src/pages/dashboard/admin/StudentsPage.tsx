@@ -40,39 +40,34 @@ export default function StudentsPage() {
   const { data: students, isLoading, refetch } = useQuery({
     queryKey: ['admin-students'],
     queryFn: async () => {
-      // Fetch student profiles
       const { data: studentData, error: studentError } = await supabase
         .from('student_profiles')
-        .select(`
-          *,
-          profiles!student_profiles_user_id_fkey (
-            id,
-            first_name,
-            last_name,
-            email
-          ),
-          parent_profile:parent_id (
-            first_name,
-            last_name
-          )
-        `);
+        .select('*')
+        .limit(2000);
 
       if (studentError) throw studentError;
-      if (!studentData) return [];
+      if (!studentData || studentData.length === 0) return [];
 
-      // Fetch wallets separately
       const userIds = studentData.map(s => s.user_id);
-      const { data: walletData, error: walletError } = await supabase
-        .from('wallets')
-        .select('user_id, balance, currency')
-        .in('user_id', userIds);
+      const parentIds = studentData.map(s => s.parent_id).filter(Boolean) as string[];
+      const allIds = Array.from(new Set([...userIds, ...parentIds]));
 
+      const [{ data: profilesData, error: profilesError }, { data: walletData, error: walletError }] = await Promise.all([
+        supabase.from('profiles').select('id, first_name, last_name, email').in('id', allIds),
+        supabase.from('wallets').select('user_id, balance, currency').in('user_id', userIds),
+      ]);
+
+      if (profilesError) throw profilesError;
       if (walletError) throw walletError;
 
-      // Merge wallets with students
+      const profileById = new Map((profilesData || []).map(p => [p.id, p]));
+      const walletByUser = new Map((walletData || []).map(w => [w.user_id, w]));
+
       return studentData.map(student => ({
         ...student,
-        wallets: walletData?.find(w => w.user_id === student.user_id)
+        profiles: profileById.get(student.user_id) || null,
+        parent_profile: student.parent_id ? profileById.get(student.parent_id) || null : null,
+        wallets: walletByUser.get(student.user_id) || null,
       }));
     },
   });

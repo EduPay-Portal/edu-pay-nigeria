@@ -32,31 +32,33 @@ export default function ParentsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('parent_profiles')
-        .select(`
-          *,
-          profiles:user_id (
-            id,
-            first_name,
-            last_name,
-            email
-          )
-        `);
+        .select('*')
+        .limit(2000);
 
       if (error) throw error;
+      if (!data || data.length === 0) return [];
 
-      // Get children count for each parent
-      const parentsWithChildren = await Promise.all(
-        (data || []).map(async (parent) => {
-          const { count } = await supabase
-            .from('student_profiles')
-            .select('*', { count: 'exact', head: true })
-            .eq('parent_id', parent.user_id);
+      const userIds = data.map(p => p.user_id);
 
-          return { ...parent, childrenCount: count || 0 };
-        })
-      );
+      const [{ data: profilesData, error: profilesError }, { data: childrenData, error: childrenError }] = await Promise.all([
+        supabase.from('profiles').select('id, first_name, last_name, email').in('id', userIds),
+        supabase.from('student_profiles').select('parent_id').in('parent_id', userIds),
+      ]);
 
-      return parentsWithChildren;
+      if (profilesError) throw profilesError;
+      if (childrenError) throw childrenError;
+
+      const profileById = new Map((profilesData || []).map(p => [p.id, p]));
+      const childCountByParent = new Map<string, number>();
+      (childrenData || []).forEach(c => {
+        if (c.parent_id) childCountByParent.set(c.parent_id, (childCountByParent.get(c.parent_id) || 0) + 1);
+      });
+
+      return data.map(parent => ({
+        ...parent,
+        profiles: profileById.get(parent.user_id) || null,
+        childrenCount: childCountByParent.get(parent.user_id) || 0,
+      }));
     },
   });
 
