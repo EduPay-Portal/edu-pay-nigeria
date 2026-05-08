@@ -22,6 +22,9 @@ import BulkImportPage from "./pages/dashboard/admin/BulkImportPage";
 import WebhooksPage from "./pages/dashboard/admin/WebhooksPage";
 import ReconciliationPage from "./pages/dashboard/admin/ReconciliationPage";
 import PaymentSimulatorPage from "./pages/dashboard/admin/PaymentSimulatorPage";
+import DVAManagementPage from "./pages/dashboard/admin/DVAManagementPage";
+import SettlementsPage from "./pages/dashboard/admin/SettlementsPage";
+import AuditLogPage from "./pages/dashboard/admin/AuditLogPage";
 
 const queryClient = new QueryClient();
 
