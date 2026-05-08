@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, History, User, Settings, LogOut, Menu, Upload, Webhook, GitCompare, FlaskConical } from 'lucide-react';
+import { LayoutDashboard, Wallet, History, User, Settings, LogOut, Menu, Upload, Webhook, GitCompare, FlaskConical, Banknote, Landmark, ShieldCheck } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import logo from '@/assets/logo_edupay.png';
 import { useAuth } from '@/contexts/AuthContext';
@@ -50,9 +50,12 @@ const adminItems = [
   { title: 'Parents', url: '/dashboard/admin/parents', icon: User },
   { title: 'Transactions', url: '/dashboard/admin/transactions', icon: History },
   { title: 'Bulk Import', url: '/dashboard/admin/bulk-import', icon: Upload },
+  { title: 'Virtual Accounts', url: '/dashboard/admin/dva', icon: Landmark },
+  { title: 'Settlements', url: '/dashboard/admin/settlements', icon: Banknote },
   { title: 'Payment Simulator', url: '/dashboard/admin/payment-simulator', icon: FlaskConical },
   { title: 'Webhooks', url: '/dashboard/admin/webhooks', icon: Webhook },
   { title: 'Reconciliation', url: '/dashboard/admin/reconciliation', icon: GitCompare },
+  { title: 'Audit Log', url: '/dashboard/admin/audit', icon: ShieldCheck },
   { title: 'Settings', url: '/dashboard/admin/settings', icon: Settings },
 ];
 
