@@ -41,6 +41,42 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          after: Json | null
+          before: Json | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip?: string | null
+        }
+        Relationships: []
+      }
       parent_profiles: {
         Row: {
           created_at: string | null
@@ -140,6 +176,90 @@ export type Database = {
           id?: string
           last_name?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      reconciliation_logs: {
+        Row: {
+          created_at: string
+          expected_amount: number | null
+          id: string
+          match_type: string
+          notes: string | null
+          received_amount: number | null
+          resolved_at: string | null
+          resolved_by: string | null
+          student_id: string | null
+          transaction_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          expected_amount?: number | null
+          id?: string
+          match_type: string
+          notes?: string | null
+          received_amount?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          student_id?: string | null
+          transaction_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          expected_amount?: number | null
+          id?: string
+          match_type?: string
+          notes?: string | null
+          received_amount?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          student_id?: string | null
+          transaction_id?: string | null
+        }
+        Relationships: []
+      }
+      settlements: {
+        Row: {
+          bank_reference: string | null
+          created_at: string
+          fees: number
+          gross_amount: number
+          id: string
+          metadata: Json | null
+          net_amount: number
+          provider: string
+          settlement_date: string
+          status: string
+          transaction_count: number
+          updated_at: string
+        }
+        Insert: {
+          bank_reference?: string | null
+          created_at?: string
+          fees?: number
+          gross_amount?: number
+          id?: string
+          metadata?: Json | null
+          net_amount?: number
+          provider: string
+          settlement_date: string
+          status?: string
+          transaction_count?: number
+          updated_at?: string
+        }
+        Update: {
+          bank_reference?: string | null
+          created_at?: string
+          fees?: number
+          gross_amount?: number
+          id?: string
+          metadata?: Json | null
+          net_amount?: number
+          provider?: string
+          settlement_date?: string
+          status?: string
+          transaction_count?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -274,12 +394,18 @@ export type Database = {
           description: string | null
           id: string
           idempotency_key: string | null
+          match_status: string | null
           metadata: Json | null
+          payer_account_name: string | null
+          payer_account_number: string | null
+          payer_bank: string | null
           payment_channel: string | null
           payment_method: string | null
           paystack_reference: string | null
           provider: string | null
+          provider_reference: string | null
           reference: string
+          settlement_id: string | null
           status: Database["public"]["Enums"]["transaction_status"] | null
           type: Database["public"]["Enums"]["transaction_type"]
           user_id: string
@@ -293,12 +419,18 @@ export type Database = {
           description?: string | null
           id?: string
           idempotency_key?: string | null
+          match_status?: string | null
           metadata?: Json | null
+          payer_account_name?: string | null
+          payer_account_number?: string | null
+          payer_bank?: string | null
           payment_channel?: string | null
           payment_method?: string | null
           paystack_reference?: string | null
           provider?: string | null
+          provider_reference?: string | null
           reference: string
+          settlement_id?: string | null
           status?: Database["public"]["Enums"]["transaction_status"] | null
           type: Database["public"]["Enums"]["transaction_type"]
           user_id: string
@@ -312,12 +444,18 @@ export type Database = {
           description?: string | null
           id?: string
           idempotency_key?: string | null
+          match_status?: string | null
           metadata?: Json | null
+          payer_account_name?: string | null
+          payer_account_number?: string | null
+          payer_bank?: string | null
           payment_channel?: string | null
           payment_method?: string | null
           paystack_reference?: string | null
           provider?: string | null
+          provider_reference?: string | null
           reference?: string
+          settlement_id?: string | null
           status?: Database["public"]["Enums"]["transaction_status"] | null
           type?: Database["public"]["Enums"]["transaction_type"]
           user_id?: string
@@ -359,14 +497,20 @@ export type Database = {
         Row: {
           account_name: string
           account_number: string
+          assigned_at: string | null
           bank_code: string
           bank_name: string
           created_at: string | null
+          environment: string
           id: string
           is_active: boolean | null
           last_payment_at: string | null
+          metadata: Json | null
           paystack_customer_code: string | null
           provider: string | null
+          provider_account_id: string | null
+          provider_customer_id: string | null
+          status: string
           student_id: string
           total_received: number | null
           updated_at: string | null
@@ -374,14 +518,20 @@ export type Database = {
         Insert: {
           account_name: string
           account_number: string
+          assigned_at?: string | null
           bank_code: string
           bank_name: string
           created_at?: string | null
+          environment?: string
           id?: string
           is_active?: boolean | null
           last_payment_at?: string | null
+          metadata?: Json | null
           paystack_customer_code?: string | null
           provider?: string | null
+          provider_account_id?: string | null
+          provider_customer_id?: string | null
+          status?: string
           student_id: string
           total_received?: number | null
           updated_at?: string | null
@@ -389,14 +539,20 @@ export type Database = {
         Update: {
           account_name?: string
           account_number?: string
+          assigned_at?: string | null
           bank_code?: string
           bank_name?: string
           created_at?: string | null
+          environment?: string
           id?: string
           is_active?: boolean | null
           last_payment_at?: string | null
+          metadata?: Json | null
           paystack_customer_code?: string | null
           provider?: string | null
+          provider_account_id?: string | null
+          provider_customer_id?: string | null
+          status?: string
           student_id?: string
           total_received?: number | null
           updated_at?: string | null
@@ -427,6 +583,51 @@ export type Database = {
           id?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      webhook_events: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_type: string
+          id: string
+          ip_address: unknown
+          payload: Json
+          processed: boolean
+          processed_at: string | null
+          provider: string
+          provider_reference: string | null
+          retry_count: number
+          signature_valid: boolean
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          payload: Json
+          processed?: boolean
+          processed_at?: string | null
+          provider: string
+          provider_reference?: string | null
+          retry_count?: number
+          signature_valid?: boolean
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          payload?: Json
+          processed?: boolean
+          processed_at?: string | null
+          provider?: string
+          provider_reference?: string | null
+          retry_count?: number
+          signature_valid?: boolean
         }
         Relationships: []
       }
