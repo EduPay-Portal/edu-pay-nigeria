@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, History, User, Settings, LogOut, Menu, Upload, Webhook, GitCompare, FlaskConical } from 'lucide-react';
+import { LayoutDashboard, Wallet, History, User, Settings, LogOut, Menu, Upload, Webhook, GitCompare, FlaskConical, Banknote, Landmark, ShieldCheck } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import logo from '@/assets/logo_edupay.png';
 import { useAuth } from '@/contexts/AuthContext';
