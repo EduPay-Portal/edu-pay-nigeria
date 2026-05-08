@@ -53,6 +53,9 @@ const App = () => (
                 <Route path="admin/payment-simulator" element={<ProtectedRoute allowedRoles={['admin']}><PaymentSimulatorPage /></ProtectedRoute>} />
                 <Route path="admin/webhooks" element={<ProtectedRoute allowedRoles={['admin']}><WebhooksPage /></ProtectedRoute>} />
                 <Route path="admin/reconciliation" element={<ProtectedRoute allowedRoles={['admin']}><ReconciliationPage /></ProtectedRoute>} />
+                <Route path="admin/dva" element={<ProtectedRoute allowedRoles={['admin']}><DVAManagementPage /></ProtectedRoute>} />
+                <Route path="admin/settlements" element={<ProtectedRoute allowedRoles={['admin']}><SettlementsPage /></ProtectedRoute>} />
+                <Route path="admin/audit" element={<ProtectedRoute allowedRoles={['admin']}><AuditLogPage /></ProtectedRoute>} />
                 <Route path="admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><SettingsPage /></ProtectedRoute>} />
               </Route>
 
