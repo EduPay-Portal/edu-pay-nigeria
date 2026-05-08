@@ -60,7 +60,7 @@ export default function DVAManagementPage() {
   const archivedCount = accounts.filter(a => a.status === 'archived').length;
 
   return (
-    <DashboardLayout>
+    
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -143,6 +143,6 @@ export default function DVAManagementPage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    
   );
 }
