@@ -1,36 +1,40 @@
-## Problem
+## Goal
+Create a one-page technical architecture diagram showing how the school fee collection platform integrates with Wema Bank's Virtual NUBAN Collections API, suitable for sharing with the Wema account officer at the upcoming meeting.
 
-Creating a Wema virtual account fails with:
-```
-duplicate key value violates unique constraint "unique_student_virtual_account"
-```
+## Format
+A single-page **PDF** (landscape A4) generated from a Mermaid diagram, plus the raw `.mmd` source file so it can be edited later. Saved to `/mnt/documents/`:
+- `wema_technical_architecture.pdf` — printable handout
+- `wema_technical_architecture.mmd` — editable source
 
-The `virtual_accounts` table has a `UNIQUE (student_id)` constraint — only **one row per student**, ever. But the Wema migration archived old Paystack DVAs (`status='archived'`, `is_active=false`) instead of deleting them. When `dva-create` tries to insert a new Wema row for the same student, it collides with the archived Paystack row.
+## What the diagram will show
 
-The `dva-create` function correctly skips when an *active* DVA already exists for the requested provider, but the DB constraint is stricter than the application logic.
+Five logical zones, left → right:
 
-## Fix
+1. **Payers** — Parents / guardians initiating bank transfers from any Nigerian bank (GTB, Zenith, UBA, Access, etc.) via mobile app, USSD, or branch.
 
-Replace the column-level uniqueness with a **partial unique index** that only enforces uniqueness on *active* rows, so:
-- A student can have at most one **active** DVA per provider
-- Archived/historical DVAs (Paystack) coexist with new active Wema DVAs
-- Reissue and provider switching work cleanly
+2. **NIBSS / Inter-bank rails** — NIP transfer routed to Wema Bank.
 
-### Migration
+3. **Wema Bank** 
+   - Virtual NUBAN Collections API (per-student permanent NUBAN)
+   - Settlement into the school's existing Wema corporate account
+   - Outbound webhook (HMAC-SHA512 signed) on every credit
 
-```sql
-ALTER TABLE public.virtual_accounts
-  DROP CONSTRAINT IF EXISTS unique_student_virtual_account;
+4. **Our Platform (Lovable Cloud / Supabase)**
+   - `dva-create` edge function — provisions a Virtual NUBAN per student at onboarding
+   - `wema-webhook` edge function — receives & verifies webhook (HMAC + IP allowlist + idempotency)
+   - Postgres tables: `virtual_accounts`, `transactions`, `webhook_events`, `wallets`, `reconciliation_logs`, `settlements`
+   - Auto-credit student wallet, write audit log, run reconciliation
 
-CREATE UNIQUE INDEX IF NOT EXISTS uniq_active_va_per_student_provider
-  ON public.virtual_accounts (student_id, provider)
-  WHERE status = 'active';
-```
+5. **End users (web app)**
+   - Admin dashboard (DVA management, reconciliation, settlements, audit)
+   - Parent / Student dashboards (wallet balance, transaction history, receipts)
 
-No app code changes needed — `dva-create` already guards against duplicate active rows in the same provider.
+Arrows will show: money flow (solid), API calls (dashed), webhook callback (bold), and data writes.
 
-## Verification
+A small legend in the corner explains arrow types and a short call-out lists the **5 things we need from Wema** (sandbox creds, production creds, webhook secret, IP allowlist, API docs) so the diagram doubles as a conversation anchor in the meeting.
 
-1. Retry "Create VA" from `/dashboard/admin/students` — should succeed and produce a Wema NUBAN row.
-2. Re-running it for the same student returns the existing active account (no duplicate).
-3. Old archived Paystack rows remain intact for historical reference.
+## Approach
+1. Write Mermaid `flowchart LR` source with subgraphs per zone, navy/Wema-purple accent colors.
+2. Render to PDF using `mmdc` (mermaid-cli) at landscape A4.
+3. QA: convert PDF → JPEG and visually inspect for overflow, clipped text, legibility at print size.
+4. Iterate until clean, then deliver both `.pdf` and `.mmd`.
