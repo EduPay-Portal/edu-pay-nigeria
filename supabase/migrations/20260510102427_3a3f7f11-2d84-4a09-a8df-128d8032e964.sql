@@ -1,0 +1,2 @@
+ALTER TABLE public.virtual_accounts DROP CONSTRAINT IF EXISTS virtual_accounts_provider_check;
+ALTER TABLE public.virtual_accounts ADD CONSTRAINT virtual_accounts_provider_check CHECK (provider IN ('paystack','mock','wema'));
