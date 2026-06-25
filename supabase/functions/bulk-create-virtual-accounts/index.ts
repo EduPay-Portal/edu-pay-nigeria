@@ -3,12 +3,8 @@
 // Sequential processing with 2s delay and 3-attempt exponential backoff
 // per project memory.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { adminClient, corsHeaders, requireAdmin } from "../_shared/auth.ts";
+import { writeAudit } from "../_shared/audit.ts";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -25,38 +21,18 @@ serve(async (req) => {
   }
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-  const supabase = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const supabase = adminClient();
+
+  const guard = await requireAdmin(req, supabase);
+  if (guard instanceof Response) return guard;
+  const { actorId, requestId, ip } = guard;
+  const authHeader = req.headers.get("Authorization")!;
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const { data: isAdmin } = await supabase.rpc("has_role", {
-      _user_id: user.id,
-      _role: "admin",
+    await writeAudit(supabase, {
+      actorId, action: "bulk_create_virtual_accounts.invoked", requestId, ip,
     });
-    if (!isAdmin) {
-      return new Response(
-        JSON.stringify({ error: "Admin access required" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    console.log("Starting bulk virtual account creation (Wema)...");
+    console.log(`[bulk-create-vas] req=${requestId} starting...`);
 
     const { data: students, error: queryError } = await supabase
       .from("student_profiles")
