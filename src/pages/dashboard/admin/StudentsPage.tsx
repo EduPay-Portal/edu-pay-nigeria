@@ -328,6 +328,20 @@ export default function StudentsPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {studentsError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Failed to load students</AlertTitle>
+              <AlertDescription>
+                <div className="font-mono text-xs whitespace-pre-wrap break-all">
+                  <div><strong>message:</strong> {(studentsError as any)?.message || String(studentsError)}</div>
+                  {(studentsError as any)?.code && <div><strong>code:</strong> {(studentsError as any).code}</div>}
+                  {(studentsError as any)?.details && <div><strong>details:</strong> {(studentsError as any).details}</div>}
+                  {(studentsError as any)?.hint && <div><strong>hint:</strong> {(studentsError as any).hint}</div>}
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -338,6 +352,7 @@ export default function StudentsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+
 
           {/* Students Table */}
           {isLoading ? (
