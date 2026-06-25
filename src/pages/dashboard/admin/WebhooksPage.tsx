@@ -16,7 +16,7 @@ import { format } from 'date-fns';
 interface WebhookEvent {
   id: string;
   event_type: string;
-  provider_reference: string;
+  paystack_reference: string;
   payload: any;
   signature_valid: boolean;
   processed: boolean;
@@ -105,7 +105,7 @@ export default function WebhooksPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Webhook Events</h1>
-        <p className="text-muted-foreground">Monitor and manage Paystack webhook notifications</p>
+        <p className="text-muted-foreground">Monitor and manage payment webhook notifications</p>
       </div>
 
       {/* Stats Cards */}
@@ -148,7 +148,7 @@ export default function WebhooksPage() {
       <Card>
         <CardHeader>
           <CardTitle>Webhook Events Log</CardTitle>
-          <CardDescription>Real-time log of all Paystack webhook notifications</CardDescription>
+          <CardDescription>Real-time log of all payment webhook notifications</CardDescription>
         </CardHeader>
         <CardContent>
           {/* Filters */}

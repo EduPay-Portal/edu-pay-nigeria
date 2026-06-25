@@ -219,7 +219,7 @@ export default function PaymentSimulatorPage() {
         <div className="text-sm">
           <p className="font-semibold text-warning-foreground">TEST MODE</p>
           <p className="text-muted-foreground">
-            All payments here use <code className="font-mono">TEST_</code> references and never touch real money or the live Paystack account.
+            All payments here use <code className="font-mono">TEST_</code> references and never touch real money or live bank accounts.
           </p>
         </div>
       </div>

@@ -151,7 +151,7 @@ export default function ReconciliationPage() {
                       Unmatched Webhooks
                     </div>
                     <div className="text-yellow-700 dark:text-yellow-300 mt-1">
-                      These webhook events were received from Paystack but no corresponding transaction was created in the database.
+                      These webhook events were received from the payment provider but no corresponding transaction was created in the database.
                       This could indicate processing errors or delays.
                     </div>
                   </div>
@@ -211,7 +211,7 @@ export default function ReconciliationPage() {
                       Duplicate Transactions
                     </div>
                     <div className="text-red-700 dark:text-red-300 mt-1">
-                      Multiple transactions found with the same Paystack reference. This indicates a potential double-processing issue.
+                      Multiple transactions found with the same provider reference. This indicates a potential double-processing issue.
                     </div>
                   </div>
                 </div>

@@ -252,8 +252,8 @@ const Index = () => {
               <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                 <Zap className="w-5 h-5 text-primary" />
               </div>
-              <h4 className="font-semibold">Multi-Gateway Payments</h4>
-              <p className="text-sm text-muted-foreground">Accept payments via Paystack, Flutterwave, cards, and transfers.</p>
+              <h4 className="font-semibold">Bank Transfer Payments</h4>
+              <p className="text-sm text-muted-foreground">Accept payments directly via dedicated Wema Bank virtual accounts.</p>
             </Card>
 
             <Card className="p-6 space-y-3 bg-card/50 backdrop-blur-sm hover:shadow-lg transition-shadow">
