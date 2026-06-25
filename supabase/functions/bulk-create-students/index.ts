@@ -337,6 +337,13 @@ serve(async (req) => {
           email: studentEmail,
         });
 
+        await writeAudit(supabaseAdmin, {
+          actorId, action: 'user.create.student',
+          entityType: 'user', entityId: studentUserId,
+          requestId, ip,
+          metadata: { sn, email: studentEmail, source: 'bulk_import' },
+        });
+
         console.log(`  ✓ Successfully processed SN ${sn}`);
 
       } catch (error) {
@@ -362,26 +369,26 @@ serve(async (req) => {
 
     console.log(`Bulk create complete: ${results.success_count} success, ${results.error_count} errors`);
 
+    await writeAudit(supabaseAdmin, {
+      actorId, action: 'bulk_create_students.completed',
+      entityType: 'students_import_staging', requestId, ip,
+      metadata: { success_count: results.success_count, error_count: results.error_count },
+    });
+
     return new Response(
-      JSON.stringify(results),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      }
+      JSON.stringify({ ...results, request_id: requestId }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
 
   } catch (error) {
     console.error('Fatal error in bulk-create-students:', error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error instanceof Error ? error.message : 'Unknown error',
         success_count: 0,
         error_count: 0,
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });
