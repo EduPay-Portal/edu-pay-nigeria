@@ -599,13 +599,12 @@ export default function StudentsPage() {
         student={studentToEdit}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
-        onSuccess={() => refetch()}
       />
       <AddStudentDialog
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
-        onSuccess={() => refetch()}
       />
+
     </div>
   );
 }
