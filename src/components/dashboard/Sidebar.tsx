@@ -92,15 +92,27 @@ export const Sidebar = () => {
   return (
     <SidebarUI className={isCollapsed ? 'w-14' : 'w-64'} collapsible="icon">
       {/* Header */}
-      <div className="p-4 border-b border-sidebar-border bg-sidebar">
-        <div className="flex items-center justify-between">
+      <div role="banner" className="px-3 py-3 border-b border-sidebar-border bg-sidebar">
+        <NavLink
+          to="/"
+          aria-label="ASCI Payment Portal — Home"
+          className="flex items-center justify-start focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring rounded-md"
+        >
           {!isCollapsed ? (
-            <img src={logo} alt="ASCI Payment Portal" className="h-14 w-full object-contain" />
+            <img
+              src={logo}
+              alt="Ahmadiyya Science College Ilaro — Payment Portal (ASCI)"
+              className="h-10 sm:h-12 md:h-14 w-auto max-w-full object-contain object-left"
+            />
           ) : (
-            <img src={logo} alt="ASCI" className="h-6 w-auto mx-auto" />
+            <img
+              src={logo}
+              alt="Ahmadiyya Science College Ilaro — Payment Portal (ASCI)"
+              className="h-8 w-auto object-contain object-left"
+            />
           )}
+        </NavLink>
 
-        </div>
         
         {!isCollapsed && (
           <div className="mt-4 p-3 rounded-lg bg-sidebar-accent border border-sidebar-border shadow-sm">
