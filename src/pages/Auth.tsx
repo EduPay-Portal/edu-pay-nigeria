@@ -96,7 +96,7 @@ const Auth = () => {
       <div className="relative lg:w-[40%] w-full min-h-[30vh] lg:min-h-screen bg-gradient-to-br from-[#0d4a6b] to-[#082a3d] p-8 lg:p-12 flex flex-col">
         {/* Logo at top */}
         <div className="flex items-center text-white mb-8">
-          <img src={logo} alt="ASCI Payment Portal" className="h-10 w-auto brightness-0 invert" />
+          <img src={logo} alt="ASCI Payment Portal" className="h-12 w-auto bg-white rounded-md p-1" />
         </div>
         
         {/* Centered content */}
