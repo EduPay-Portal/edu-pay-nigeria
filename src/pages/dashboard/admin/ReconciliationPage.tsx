@@ -47,7 +47,7 @@ export default function ReconciliationPage() {
     },
   });
 
-  // Fetch duplicate transactions (same paystack reference)
+  // Fetch duplicate transactions (same provider reference)
   const { data: duplicateTransactions, isLoading: loadingDuplicates } = useQuery({
     queryKey: ['duplicate-transactions'],
     queryFn: async () => {
