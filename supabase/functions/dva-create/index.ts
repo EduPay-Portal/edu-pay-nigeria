@@ -36,12 +36,35 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { data: { user } } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+
+    const token = authHeader.replace("Bearer ", "");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Allow server-to-server invocations (DB trigger / other edge functions
+    // forwarding the service-role key). For all user-initiated calls require
+    // an admin role.
+    let actorId: string | null = null;
+    if (token === serviceRoleKey) {
+      actorId = null; // trusted internal caller
+    } else {
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (!user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: isAdmin } = await supabase.rpc("has_role", {
+        _user_id: user.id,
+        _role: "admin",
       });
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Admin role required" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      actorId = user.id;
     }
 
     const body: Body = await req.json();
@@ -98,7 +121,7 @@ serve(async (req) => {
 
     // audit
     await supabase.from("audit_logs").insert({
-      actor_id: user.id,
+      actor_id: actorId,
       action: "dva.create",
       entity_type: "virtual_account",
       entity_id: saved.id,

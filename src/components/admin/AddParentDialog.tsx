@@ -65,34 +65,23 @@ export function AddParentDialog({ open, onOpenChange }: AddParentDialogProps) {
 
   const createMutation = useMutation({
     mutationFn: async (data: AddParentFormValues) => {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: data.email,
-        password: data.password,
-        email_confirm: true,
-        user_metadata: {
+      const { data: result, error } = await supabase.functions.invoke('admin-create-user', {
+        body: {
+          email: data.email,
+          password: data.password,
           first_name: data.firstName,
           last_name: data.lastName,
           role: 'parent',
+          parent_profile: {
+            occupation: data.occupation || null,
+            emergency_contact: data.emergencyContact || null,
+            notification_preference: data.notificationPreference,
+          },
         },
       });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('User creation failed');
-
-      // Create parent profile
-      const { error: profileError } = await supabase
-        .from('parent_profiles')
-        .insert({
-          user_id: authData.user.id,
-          occupation: data.occupation || null,
-          emergency_contact: data.emergencyContact || null,
-          notification_preference: data.notificationPreference,
-        });
-
-      if (profileError) throw profileError;
-
-      return authData.user;
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-parents'] });
