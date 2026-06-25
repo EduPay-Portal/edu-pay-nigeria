@@ -121,7 +121,7 @@ serve(async (req) => {
 
     // audit
     await supabase.from("audit_logs").insert({
-      actor_id: user.id,
+      actor_id: actorId,
       action: "dva.create",
       entity_type: "virtual_account",
       entity_id: saved.id,
