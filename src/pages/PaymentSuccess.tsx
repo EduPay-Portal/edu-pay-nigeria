@@ -14,7 +14,7 @@ interface ResolvedTx {
   id: string;
   amount: number;
   reference: string;
-  paystack_reference: string | null;
+  provider_reference: string | null;
   status: string;
   type: string;
   category: string;
@@ -55,8 +55,8 @@ export default function PaymentSuccess() {
 
       const { data } = await supabase
         .from('transactions')
-        .select('id, amount, reference, paystack_reference, status, type, category, payment_method, payment_channel, provider, description, created_at')
-        .eq('paystack_reference', reference)
+        .select('id, amount, reference, provider_reference, status, type, category, payment_method, payment_channel, provider, description, created_at')
+        .eq('provider_reference', reference)
         .maybeSingle();
 
       if (cancelled) return;
@@ -158,7 +158,7 @@ export default function PaymentSuccess() {
                   onClick={() =>
                     downloadReceipt({
                       reference: tx.reference,
-                      paystackReference: tx.paystack_reference,
+                      providerReference: tx.provider_reference,
                       amount: Number(tx.amount),
                       status: tx.status,
                       type: tx.type,
