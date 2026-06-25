@@ -64,9 +64,6 @@ export default function StudentDashboard() {
           Welcome back! Fund your wallet by transferring to your Virtual Account below.
         </p>
       </div>
-          Top Up Wallet
-        </Button>
-      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <VirtualAccountCard />
@@ -153,11 +150,6 @@ export default function StudentDashboard() {
           <ProfileSection />
         </TabsContent>
       </Tabs>
-
-      <TopUpWalletDialog 
-        open={showTopUpDialog} 
-        onOpenChange={setShowTopUpDialog}
-      />
     </div>
   );
 }
