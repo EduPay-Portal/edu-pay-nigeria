@@ -11,7 +11,7 @@ import { SignInFormData, SignUpFormData, ResetPasswordFormData, signInSchema, si
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import logo from "@/assets/logo_edupay.png";
+import logo from "@/assets/logo_asc.png";
 
 const Auth = () => {
   const navigate = useNavigate();

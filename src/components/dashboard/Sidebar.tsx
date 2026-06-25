@@ -1,6 +1,6 @@
 import { LayoutDashboard, Wallet, History, User, Settings, LogOut, Menu, Upload, Webhook, GitCompare, FlaskConical, Banknote, Landmark, ShieldCheck } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import logo from '@/assets/logo_edupay.png';
+import logo from '@/assets/logo_asc.png';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
