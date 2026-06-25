@@ -81,7 +81,6 @@ serve(async (req) => {
         provider: dva.provider,
         provider_account_id: dva.provider_account_id,
         provider_customer_id: dva.provider_customer_id,
-        paystack_customer_code: dva.provider === "paystack" ? dva.provider_customer_id : null,
         account_number: dva.account_number,
         account_name: dva.account_name,
         bank_name: dva.bank_name,

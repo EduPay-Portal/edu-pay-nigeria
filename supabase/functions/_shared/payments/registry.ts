@@ -3,9 +3,8 @@
 import type { DVAProvider, ProviderName } from "./types.ts";
 import { wemaProvider } from "./providers/wema.ts";
 
-const registry: Record<ProviderName, DVAProvider | undefined> = {
+const registry: Record<ProviderName, DVAProvider> = {
   wema: wemaProvider,
-  paystack: undefined, // DVA path deprecated; Paystack stays only for card top-ups (handled by paystack-webhook)
 };
 
 export function getDVAProvider(name: ProviderName = "wema"): DVAProvider {

@@ -1,7 +1,7 @@
 // Provider-agnostic payment types.
-// Any new bank/aggregator (Wema, Zenith, GTB, Paystack, etc.) implements PaymentProvider.
+// Wema Bank is the active DVA provider. New providers implement DVAProvider.
 
-export type ProviderName = "wema" | "paystack";
+export type ProviderName = "wema";
 export type Environment = "sandbox" | "production";
 
 export interface DVAccount {

@@ -30,13 +30,13 @@ export default function TransactionsPage() {
     },
     queryFn: async () => {
       const ref = activeLookup!.trim();
-      // Try paystack_reference first, then internal reference
-      const { data: byPs } = await supabase
+      // Try provider_reference first, then internal reference
+      const { data: byProvider } = await supabase
         .from('transactions')
         .select('*, profiles:user_id(first_name, last_name, email)')
-        .eq('paystack_reference', ref)
+        .eq('provider_reference', ref)
         .maybeSingle();
-      if (byPs) return byPs;
+      if (byProvider) return byProvider;
       const { data: byRef } = await supabase
         .from('transactions')
         .select('*, profiles:user_id(first_name, last_name, email)')
@@ -170,7 +170,7 @@ export default function TransactionsPage() {
         <CardHeader>
           <CardTitle>Reference Lookup</CardTitle>
           <CardDescription>
-            Search by Paystack reference or internal reference. Status updates live every 3s while pending.
+            Search by provider reference or internal reference. Status updates live every 3s while pending.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -245,8 +245,8 @@ export default function TransactionsPage() {
                   <div className="font-mono break-all">{lookupResult.reference}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Paystack reference</div>
-                  <div className="font-mono break-all">{lookupResult.paystack_reference || '—'}</div>
+                  <div className="text-muted-foreground">Provider reference</div>
+                  <div className="font-mono break-all">{lookupResult.provider_reference || lookupResult.paystack_reference || '—'}</div>
                 </div>
                 <div>
                   <div className="text-muted-foreground">Payer</div>
@@ -287,7 +287,7 @@ export default function TransactionsPage() {
                   onClick={() =>
                     downloadReceipt({
                       reference: lookupResult.reference,
-                      paystackReference: lookupResult.paystack_reference,
+                      providerReference: lookupResult.provider_reference ?? lookupResult.paystack_reference,
                       amount: Number(lookupResult.amount),
                       status: lookupResult.status,
                       type: lookupResult.type,

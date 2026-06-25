@@ -2,7 +2,7 @@ import jsPDF from 'jspdf';
 
 export interface ReceiptData {
   reference: string;
-  paystackReference?: string | null;
+  providerReference?: string | null;
   amount: number;
   status: string;
   type: string;
@@ -77,10 +77,10 @@ export function generateReceiptPdf(data: ReceiptData): jsPDF {
 
   const rows: Array<[string, string]> = [
     ['Internal reference', data.reference],
-    ['Paystack reference', data.paystackReference || '—'],
+    ['Provider reference', data.providerReference || '—'],
     ['Date & time', fmtDateTime(data.createdAt)],
-    ['Payment method', (data.paymentMethod || data.paymentChannel || 'paystack').replace(/_/g, ' ')],
-    ['Provider', data.provider || 'paystack'],
+    ['Payment method', (data.paymentMethod || data.paymentChannel || 'bank_transfer').replace(/_/g, ' ')],
+    ['Provider', data.provider || 'wema'],
     ['Payer', data.payerName || '—'],
     ['Email', data.payerEmail || '—'],
   ];
@@ -115,6 +115,6 @@ export function generateReceiptPdf(data: ReceiptData): jsPDF {
 
 export function downloadReceipt(data: ReceiptData) {
   const doc = generateReceiptPdf(data);
-  const safe = (data.paystackReference || data.reference).replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safe = (data.providerReference || data.reference).replace(/[^a-zA-Z0-9_-]/g, '_');
   doc.save(`receipt-${safe}.pdf`);
 }

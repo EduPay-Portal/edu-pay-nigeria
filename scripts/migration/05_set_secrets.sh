@@ -11,17 +11,13 @@ fi
 
 require() { [[ -n "${!1:-}" ]] || { echo "MISSING $1"; exit 1; }; }
 
-require PAYSTACK_SECRET_KEY
-require PAYSTACK_PUBLIC_KEY
-# Wema secrets — required once Wema goes live
+# Wema secrets — required for the live DVA/webhook flow
 require WEMA_API_KEY
 require WEMA_WEBHOOK_SECRET
 require WEMA_ALLOWED_IPS
 require WEMA_BASE_URL
 
 supabase secrets set \
-  PAYSTACK_SECRET_KEY="$PAYSTACK_SECRET_KEY" \
-  PAYSTACK_PUBLIC_KEY="$PAYSTACK_PUBLIC_KEY" \
   WEMA_API_KEY="$WEMA_API_KEY" \
   WEMA_WEBHOOK_SECRET="$WEMA_WEBHOOK_SECRET" \
   WEMA_ALLOWED_IPS="$WEMA_ALLOWED_IPS" \
