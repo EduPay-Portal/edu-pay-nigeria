@@ -1,12 +1,8 @@
 // Admin-only edge function for creating user accounts (parents/students).
-// Validates the caller has the 'admin' role before using service-role to create users.
+// Uses shared admin guard + audit writer.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { adminClient, corsHeaders, requireAdmin } from "../_shared/auth.ts";
+import { writeAudit } from "../_shared/audit.ts";
 
 interface Body {
   email: string;
@@ -14,7 +10,6 @@ interface Body {
   first_name: string;
   last_name: string;
   role: "parent" | "student";
-  // Optional profile fields
   parent_profile?: {
     occupation?: string | null;
     emergency_contact?: string | null;
@@ -32,42 +27,20 @@ interface Body {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const admin = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  );
+  const admin = adminClient();
+  const guard = await requireAdmin(req, admin);
+  if (guard instanceof Response) return guard;
+  const { actorId, requestId, ip } = guard;
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const { data: { user } } = await admin.auth.getUser(authHeader.replace("Bearer ", ""));
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Verify admin role server-side
-    const { data: isAdmin } = await admin.rpc("has_role", { _user_id: user.id, _role: "admin" });
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Admin role required" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const body: Body = await req.json();
     if (!body.email || !body.password || !body.first_name || !body.last_name || !body.role) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+      return new Response(JSON.stringify({ error: "Missing required fields", request_id: requestId }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     if (body.role !== "parent" && body.role !== "student") {
-      return new Response(JSON.stringify({ error: "Invalid role" }), {
+      return new Response(JSON.stringify({ error: "Invalid role", request_id: requestId }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -83,14 +56,12 @@ serve(async (req) => {
       },
     });
     if (createErr || !created.user) {
-      return new Response(JSON.stringify({ error: createErr?.message ?? "User creation failed" }), {
+      return new Response(JSON.stringify({ error: createErr?.message ?? "User creation failed", request_id: requestId }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const newUserId = created.user.id;
-
-    // Wait briefly for trigger-created profile rows, then update with provided data
     await new Promise((r) => setTimeout(r, 200));
 
     if (body.role === "parent" && body.parent_profile) {
@@ -115,22 +86,23 @@ serve(async (req) => {
         .eq("user_id", newUserId);
     }
 
-    await admin.from("audit_logs").insert({
-      actor_id: user.id,
-      action: `admin.create_${body.role}`,
-      entity_type: "user",
-      entity_id: newUserId,
+    await writeAudit(admin, {
+      actorId,
+      action: `user.create.${body.role}`,
+      entityType: "user",
+      entityId: newUserId,
+      requestId,
+      ip,
       after: { email: body.email, role: body.role },
     });
 
-    // NOTE: Do NOT return the password in the response.
-    return new Response(JSON.stringify({ user_id: newUserId, email: body.email }), {
+    return new Response(JSON.stringify({ user_id: newUserId, email: body.email, request_id: requestId }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("[admin-create-user] error", msg);
-    return new Response(JSON.stringify({ error: "Internal error" }), {
+    console.error("[admin-create-user] error", msg, "request_id=", requestId);
+    return new Response(JSON.stringify({ error: "Internal error", request_id: requestId }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
