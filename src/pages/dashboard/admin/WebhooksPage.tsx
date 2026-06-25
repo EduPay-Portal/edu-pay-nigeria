@@ -16,7 +16,7 @@ import { format } from 'date-fns';
 interface WebhookEvent {
   id: string;
   event_type: string;
-  paystack_reference: string;
+  provider_reference: string;
   payload: any;
   signature_valid: boolean;
   processed: boolean;
