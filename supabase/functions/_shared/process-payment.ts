@@ -1,5 +1,5 @@
-// Shared payment processor — used by both `paystack-webhook` and `simulate-payment`.
-// Single source of truth so simulator and live webhook can never drift.
+// Shared payment processor — used by `simulate-payment` (and any future
+// provider-specific webhook that needs the same idempotent ledger logic).
 //
 // Wallet balance is NEVER mutated here — a database trigger
 // (`apply_transaction_to_wallet`) handles that on transaction insert.
@@ -7,11 +7,11 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 export interface ProcessChargeInput {
-  reference: string;          // Paystack reference (or TEST_… for simulation)
+  reference: string;          // Provider reference (or TEST_… for simulation)
   amountKobo: number;         // Always kobo; converted to naira here
-  channel?: string | null;    // Paystack channel (e.g. 'card','bank','dedicated_nuban')
+  channel?: string | null;    // e.g. 'card','bank','dedicated_nuban'
   accountNumber?: string | null;  // Preferred resolver: DVA path
-  studentId?: string | null;      // Fallback resolver: inline-card / metadata path
+  studentId?: string | null;      // Fallback resolver: metadata path
   metadata?: Record<string, unknown>;
   webhookData?: Record<string, unknown>;
   source: "webhook" | "simulation";
@@ -59,7 +59,7 @@ export async function processChargeSuccess(
     return { ok: false, status: 400, body: { error: "Invalid amount" } };
   }
 
-  // 1. Idempotency pre-check
+  // 1. Idempotency pre-check (column kept as paystack_reference for legacy compatibility)
   const { data: existing } = await supabase
     .from("transactions")
     .select("id")
@@ -95,7 +95,6 @@ export async function processChargeSuccess(
   }
 
   if (!studentId && input.studentId) {
-    // Verify the student actually exists (has a wallet)
     const { data: w } = await supabase
       .from("wallets")
       .select("user_id")
@@ -147,10 +146,11 @@ export async function processChargeSuccess(
         : `Payment received via ${paymentMethodFor(input)}`,
       reference: `TXN-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       status: "completed",
-      paystack_reference: reference,
+      paystack_reference: reference, // legacy column name; stores provider reference for any provider
+      provider_reference: reference,
       payment_channel: input.channel ?? null,
       payment_method: paymentMethodFor(input),
-      provider: "paystack",
+      provider: "wema",
       webhook_data: input.webhookData ?? null,
       metadata: {
         source: input.source,

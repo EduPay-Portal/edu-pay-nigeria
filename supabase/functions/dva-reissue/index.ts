@@ -1,4 +1,4 @@
-// Bulk re-issue Wema DVAs for students whose existing virtual account is archived/paystack.
+// Bulk re-issue Wema DVAs for students whose existing virtual account is archived or missing.
 // Sequential, 2s delay, exponential backoff per project memory.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
