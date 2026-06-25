@@ -52,6 +52,8 @@ export type Database = {
           entity_type: string | null
           id: string
           ip: string | null
+          metadata: Json | null
+          request_id: string | null
         }
         Insert: {
           action: string
@@ -63,6 +65,8 @@ export type Database = {
           entity_type?: string | null
           id?: string
           ip?: string | null
+          metadata?: Json | null
+          request_id?: string | null
         }
         Update: {
           action?: string
@@ -74,6 +78,8 @@ export type Database = {
           entity_type?: string | null
           id?: string
           ip?: string | null
+          metadata?: Json | null
+          request_id?: string | null
         }
         Relationships: []
       }
