@@ -88,36 +88,25 @@ export function AddStudentDialog({ open, onOpenChange }: AddStudentDialogProps) 
 
   const createMutation = useMutation({
     mutationFn: async (data: AddStudentFormValues) => {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: data.email,
-        password: data.admissionNumber, // Use admission number as default password
-        email_confirm: true,
-        user_metadata: {
+      const { data: result, error } = await supabase.functions.invoke('admin-create-user', {
+        body: {
+          email: data.email,
+          password: data.admissionNumber, // default password = admission number
           first_name: data.firstName,
           last_name: data.lastName,
           role: 'student',
+          student_profile: {
+            admission_number: data.admissionNumber,
+            class_level: data.classLevel,
+            section: data.section || null,
+            school_fees: data.schoolFees ? parseFloat(data.schoolFees) : null,
+            parent_id: data.parentId || null,
+          },
         },
       });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('User creation failed');
-
-      // Create student profile
-      const { error: profileError } = await supabase
-        .from('student_profiles')
-        .insert({
-          user_id: authData.user.id,
-          admission_number: data.admissionNumber,
-          class_level: data.classLevel,
-          section: data.section || null,
-          school_fees: data.schoolFees ? parseFloat(data.schoolFees) : null,
-          parent_id: data.parentId || null,
-        });
-
-      if (profileError) throw profileError;
-
-      return authData.user;
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-students'] });
