@@ -1,8 +1,1 @@
-Replace the existing EduPay logo (`src/assets/logo_edupay.png`) with the uploaded `asc-logo.png` across all references.
-
-1. **Asset setup**: Copy the uploaded `asc-logo.png` into the project assets directory.
-2. **Update references**:
-   - `src/components/dashboard/Sidebar.tsx` — update the `logo` import and adjust display size if needed for the new image's aspect ratio.
-   - `src/pages/Index.tsx` — update the `logo` import in the landing page header.
-   - `src/pages/Auth.tsx` — update the `logo` import in the auth page left panel.
-3. **Cleanup**: Remove the old `logo_edupay.png` file if no longer referenced.
+In `src/components/dashboard/Sidebar.tsx`, remove the "ASCI" and "Payment Portal" text elements from the sidebar header (the `<p>` tags inside the header div). When the sidebar is expanded, display only the logo image and let it occupy the full header width. Keep the collapsed state unchanged (small centered logo). No other files need to change.
