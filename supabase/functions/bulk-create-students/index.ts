@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { adminClient, corsHeaders, requireAdmin } from "../_shared/auth.ts";
+import { writeAudit } from "../_shared/audit.ts";
 
 interface StagingRecord {
   "SN": string;
@@ -25,57 +21,20 @@ interface StagingRecord {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    // Create admin client with service role
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
+    const supabaseAdmin = adminClient();
 
-    // === AUTHENTICATION & ADMIN ROLE CHECK ===
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    const { data: { user } } = await supabaseAdmin.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-    if (!user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    const { data: isAdmin } = await supabaseAdmin.rpc('has_role', {
-      _user_id: user.id,
-      _role: 'admin',
-    });
-    if (!isAdmin) {
-      return new Response(
-        JSON.stringify({ error: 'Admin role required' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const guard = await requireAdmin(req, supabaseAdmin);
+    if (guard instanceof Response) return guard;
+    const { actorId, requestId, ip } = guard;
 
-    // Audit who triggered the bulk import
-    await supabaseAdmin.from('audit_logs').insert({
-      actor_id: user.id,
-      action: 'bulk_create_students.invoked',
-      entity_type: 'students_import_staging',
-      entity_id: null,
+    await writeAudit(supabaseAdmin, {
+      actorId, action: 'bulk_create_students.invoked',
+      entityType: 'students_import_staging', requestId, ip,
     });
 
     const { mode = 'all' } = await req.json();
