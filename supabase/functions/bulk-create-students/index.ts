@@ -111,7 +111,7 @@ serve(async (req) => {
       success_count: 0,
       error_count: 0,
       errors: [] as Array<{ sn: string; error: string }>,
-      created_students: [] as Array<{ sn: string; student_id: string; email: string; password: string }>,
+      created_students: [] as Array<{ sn: string; student_id: string; email: string }>,
     };
 
     // Track created parents to avoid duplicates
@@ -376,7 +376,6 @@ serve(async (req) => {
           sn: sn,
           student_id: studentUserId,
           email: studentEmail,
-          password: studentPassword,
         });
 
         console.log(`  ✓ Successfully processed SN ${sn}`);
