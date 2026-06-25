@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 export interface VirtualAccount {
   id: string;
   student_id: string;
-  paystack_customer_code: string;
+  provider: string | null;
+  provider_customer_id: string | null;
   account_number: string;
   account_name: string;
   bank_name: string;
