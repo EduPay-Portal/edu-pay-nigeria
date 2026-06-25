@@ -89,7 +89,7 @@ export default function AuditLogPage() {
         .in('id', actorIds);
       const m: Record<string, string> = {};
       (profs ?? []).forEach((p: any) => {
-        m[p.id] = p.email ?? `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() || p.id.slice(0, 8);
+        m[p.id] = p.email ?? (`${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() || p.id.slice(0, 8));
       });
       setActorMap(m);
     } else setActorMap({});
