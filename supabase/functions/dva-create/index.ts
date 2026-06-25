@@ -1,14 +1,9 @@
 // Provider-agnostic DVA creation. Defaults to Wema Bank.
-// Backward-compatible: same path/contract as the old create-virtual-account function.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getDVAProvider, DEFAULT_DVA_PROVIDER } from "../_shared/payments/registry.ts";
 import type { ProviderName } from "../_shared/payments/types.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { adminClient, corsHeaders, requireAdminOrServiceRole } from "../_shared/auth.ts";
+import { writeAudit } from "../_shared/audit.ts";
 
 interface Body {
   student_id: string;
@@ -23,55 +18,16 @@ interface Body {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
+  const supabase = adminClient();
+  const guard = await requireAdminOrServiceRole(req, supabase);
+  if (guard instanceof Response) return guard;
+  const { actorId, requestId, ip } = guard;
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    // Allow server-to-server invocations (DB trigger / other edge functions
-    // forwarding the service-role key). For all user-initiated calls require
-    // an admin role.
-    let actorId: string | null = null;
-    if (token === serviceRoleKey) {
-      actorId = null; // trusted internal caller
-    } else {
-      const { data: { user } } = await supabase.auth.getUser(token);
-      if (!user) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const { data: isAdmin } = await supabase.rpc("has_role", {
-        _user_id: user.id,
-        _role: "admin",
-      });
-      if (!isAdmin) {
-        return new Response(JSON.stringify({ error: "Admin role required" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      actorId = user.id;
-    }
-
     const body: Body = await req.json();
     const providerName: ProviderName = body.provider ?? DEFAULT_DVA_PROVIDER;
-    console.log(`[dva-create] provider=${providerName} student=${body.student_id}`);
+    console.log(`[dva-create] req=${requestId} provider=${providerName} student=${body.student_id}`);
 
-    // Skip if active DVA already exists for this provider
     const { data: existing } = await supabase
       .from("virtual_accounts")
       .select("id, account_number, bank_name, provider, status")
@@ -82,7 +38,7 @@ serve(async (req) => {
 
     if (existing) {
       return new Response(
-        JSON.stringify({ message: "Virtual account already exists", account: existing }),
+        JSON.stringify({ message: "Virtual account already exists", account: existing, request_id: requestId }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -119,13 +75,15 @@ serve(async (req) => {
 
     if (error) throw new Error(`DB insert failed: ${error.message}`);
 
-    // audit
-    await supabase.from("audit_logs").insert({
-      actor_id: actorId,
-      action: "dva.create",
-      entity_type: "virtual_account",
-      entity_id: saved.id,
+    await writeAudit(supabase, {
+      actorId,
+      action: "virtual_account.create",
+      entityType: "virtual_account",
+      entityId: saved.id,
+      requestId,
+      ip,
       after: saved,
+      metadata: { provider: dva.provider, student_id: body.student_id },
     });
 
     return new Response(
@@ -137,13 +95,14 @@ serve(async (req) => {
           account_name: dva.account_name,
           bank_name: dva.bank_name,
         },
+        request_id: requestId,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
-    console.error("[dva-create] error", e);
+    console.error("[dva-create] error", e, "request_id=", requestId);
     const msg = e instanceof Error ? e.message : "Unknown error";
-    return new Response(JSON.stringify({ error: msg }), {
+    return new Response(JSON.stringify({ error: msg, request_id: requestId }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
