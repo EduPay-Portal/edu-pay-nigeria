@@ -45,12 +45,9 @@ const Index = () => {
               <a href="#testimonials" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Testimonials</a>
             </div>
             <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
-                <Link to="/auth">Login</Link>
-              </Button>
               <Button size="sm" className="bg-primary hover:bg-primary/90" asChild>
                 <Link to="/auth">
-                  Get Started <ArrowRight className="ml-1 w-4 h-4" />
+                  Sign In <ArrowRight className="ml-1 w-4 h-4" />
                 </Link>
               </Button>
             </div>
@@ -81,12 +78,7 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-lg" asChild>
                 <Link to="/auth">
-                  Login <ArrowRight className="ml-2 w-5 h-5" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link to="/auth">
-                  Get Started
+                  Sign In <ArrowRight className="ml-2 w-5 h-5" />
                 </Link>
               </Button>
             </div>
@@ -434,16 +426,13 @@ const Index = () => {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
                   <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-lg text-lg" asChild>
                     <Link to="/auth">
-                      Get Started Today <ArrowRight className="ml-2 w-5 h-5" />
+                      Sign In <ArrowRight className="ml-2 w-5 h-5" />
                     </Link>
-                  </Button>
-                  <Button size="lg" variant="outline" className="text-lg">
-                    Schedule Demo
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground pt-4">
                   <Clock className="w-4 h-4 inline mr-1" />
-                  Free trial • No credit card required • Setup in 5 minutes
+                  Accounts are provisioned by the school administrator
                 </p>
               </div>
             </Card>
