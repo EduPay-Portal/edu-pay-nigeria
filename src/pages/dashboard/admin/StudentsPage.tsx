@@ -55,10 +55,25 @@ export default function StudentsPage() {
       const parentIds = studentData.map(s => s.parent_id).filter(Boolean) as string[];
       const allIds = Array.from(new Set([...userIds, ...parentIds]));
 
-      const [{ data: profilesData, error: profilesError }, { data: walletData, error: walletError }] = await Promise.all([
-        supabase.from('profiles').select('id, first_name, last_name, email').in('id', allIds),
-        supabase.from('wallets').select('user_id, balance, currency').in('user_id', userIds),
-      ]);
+      const chunk = <T,>(arr: T[], size: number) =>
+        Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
+          arr.slice(i * size, i * size + size));
+
+      const CHUNK = 100;
+
+      const profilesResults = await Promise.all(
+        chunk(allIds, CHUNK).map(ids =>
+          supabase.from('profiles').select('id, first_name, last_name, email').in('id', ids)
+        )
+      );
+      const walletsResults = await Promise.all(
+        chunk(userIds, CHUNK).map(ids =>
+          supabase.from('wallets').select('user_id, balance, currency').in('user_id', ids)
+        )
+      );
+
+      const profilesError = profilesResults.find(r => r.error)?.error;
+      const walletError = walletsResults.find(r => r.error)?.error;
 
       if (profilesError) {
         console.error('admin-students: profiles query failed', profilesError);
@@ -69,8 +84,12 @@ export default function StudentsPage() {
         throw walletError;
       }
 
+      const profilesData = profilesResults.flatMap(r => r.data || []);
+      const walletData = walletsResults.flatMap(r => r.data || []);
+
       const profileById = new Map((profilesData || []).map(p => [p.id, p]));
       const walletByUser = new Map((walletData || []).map(w => [w.user_id, w]));
+
 
       return studentData.map(student => ({
         ...student,
