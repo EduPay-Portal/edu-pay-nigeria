@@ -58,7 +58,7 @@ export default function WebhooksPage() {
   // Reprocess webhook mutation
   const reprocessMutation = useMutation({
     mutationFn: async (eventId: string) => {
-      const { data, error } = await supabase.functions.invoke('paystack-webhook-reprocess', {
+      const { data, error } = await supabase.functions.invoke('webhook-reprocess', {
         body: { event_id: eventId },
       });
       if (error) throw error;

@@ -1,7 +1,11 @@
 # EduPay Connect — Migration Out of Lovable
 
+> **DEPRECATION NOTICE (2026):** Paystack integration has been deprecated; Wema Bank DVA is the sole payment provider. Any Paystack secrets, webhooks, or function references below can be skipped during migration.
+
 Complete runbook for moving the platform off Lovable to a self-managed stack:
 **GitHub + Vercel + your own Supabase project.**
+
+
 
 After completing this guide, Lovable is no longer required to develop, deploy,
 or operate EduPay Connect.

@@ -1,7 +1,11 @@
 # EduPay Connect — Developer Onboarding & Product Document
 
+> **DEPRECATION NOTICE (2026):** Paystack integration has been deprecated; **Wema Bank DVA is the sole payment provider**. Any Paystack references below are retained as historical context only — do not implement new Paystack code paths. See `WEMA_INTEGRATION.md` for the current architecture.
+
 > A single source of truth for new engineers joining the EduPay Connect project.
 > Read this top-to-bottom on Day 1. Bookmark sections you'll come back to.
+
+
 
 ---
 

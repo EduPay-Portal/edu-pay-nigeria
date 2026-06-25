@@ -1,5 +1,7 @@
 # EduPay Connect - Supabase Setup Guide
 
+> **DEPRECATION NOTICE (2026):** Paystack integration has been deprecated; Wema Bank DVA is the sole payment provider.
+
 ## Step 1: Create Supabase Project
 
 1. Go to https://supabase.com and sign in
@@ -187,7 +189,7 @@ ON CONFLICT (user_id, role) DO NOTHING;
 Now that authentication is set up, you can:
 1. ✅ Build protected dashboards for each user role
 2. ✅ Add student wallet functionality
-3. ✅ Integrate payment gateways (Paystack, Flutterwave)
+3. ✅ Integrate payment gateways (Wema Bank DVA)
 4. ✅ Add SMS notifications (Termii API)
 5. ✅ Create admin management features
 
