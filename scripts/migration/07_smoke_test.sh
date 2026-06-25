@@ -14,7 +14,6 @@ check() {
 # Edge function presence (expect 401/400, NOT 404)
 check "dva-create"             "/functions/v1/dva-create"
 check "wema-webhook"           "/functions/v1/wema-webhook"
-check "paystack-webhook"       "/functions/v1/paystack-webhook"
 check "reconcile-transactions" "/functions/v1/reconcile-transactions"
 check "simulate-payment"       "/functions/v1/simulate-payment"
 

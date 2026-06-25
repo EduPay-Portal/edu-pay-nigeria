@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 04_deploy_functions.sh — deploy all 9 edge functions to the new project.
+# 04_deploy_functions.sh — deploy all edge functions to the new project.
 # Prereq: `supabase login` and `supabase link --project-ref <NEW_REF>` already run.
 set -euo pipefail
 
@@ -7,7 +7,6 @@ FUNCTIONS=(
   dva-create
   dva-reissue
   wema-webhook
-  paystack-webhook
   create-virtual-account
   bulk-create-students
   bulk-create-virtual-accounts
