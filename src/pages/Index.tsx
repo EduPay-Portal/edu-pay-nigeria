@@ -45,12 +45,9 @@ const Index = () => {
               <a href="#testimonials" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Testimonials</a>
             </div>
             <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
-                <Link to="/auth">Login</Link>
-              </Button>
               <Button size="sm" className="bg-primary hover:bg-primary/90" asChild>
                 <Link to="/auth">
-                  Get Started <ArrowRight className="ml-1 w-4 h-4" />
+                  Sign In <ArrowRight className="ml-1 w-4 h-4" />
                 </Link>
               </Button>
             </div>
