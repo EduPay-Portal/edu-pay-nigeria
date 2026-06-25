@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useEffect } from "react";
-import logo from "@/assets/logo_edupay.png";
+import logo from "@/assets/logo_asc.png";
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
