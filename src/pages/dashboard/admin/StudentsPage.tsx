@@ -37,7 +37,7 @@ export default function StudentsPage() {
   const { isCreating, progress, errors, startBulkCreation } = useBulkCreateVirtualAccounts();
 
   // Fetch students with profiles and wallets
-  const { data: students, isLoading, refetch } = useQuery({
+  const { data: students, isLoading, error: studentsError, refetch } = useQuery({
     queryKey: ['admin-students'],
     queryFn: async () => {
       const { data: studentData, error: studentError } = await supabase
@@ -45,7 +45,10 @@ export default function StudentsPage() {
         .select('*')
         .limit(2000);
 
-      if (studentError) throw studentError;
+      if (studentError) {
+        console.error('admin-students: student_profiles query failed', studentError);
+        throw studentError;
+      }
       if (!studentData || studentData.length === 0) return [];
 
       const userIds = studentData.map(s => s.user_id);
@@ -57,8 +60,14 @@ export default function StudentsPage() {
         supabase.from('wallets').select('user_id, balance, currency').in('user_id', userIds),
       ]);
 
-      if (profilesError) throw profilesError;
-      if (walletError) throw walletError;
+      if (profilesError) {
+        console.error('admin-students: profiles query failed', profilesError);
+        throw profilesError;
+      }
+      if (walletError) {
+        console.error('admin-students: wallets query failed', walletError);
+        throw walletError;
+      }
 
       const profileById = new Map((profilesData || []).map(p => [p.id, p]));
       const walletByUser = new Map((walletData || []).map(w => [w.user_id, w]));
@@ -71,6 +80,7 @@ export default function StudentsPage() {
       }));
     },
   });
+
 
   // Calculate statistics
   const totalStudents = students?.length || 0;
@@ -318,6 +328,20 @@ export default function StudentsPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {studentsError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Failed to load students</AlertTitle>
+              <AlertDescription>
+                <div className="font-mono text-xs whitespace-pre-wrap break-all">
+                  <div><strong>message:</strong> {(studentsError as any)?.message || String(studentsError)}</div>
+                  {(studentsError as any)?.code && <div><strong>code:</strong> {(studentsError as any).code}</div>}
+                  {(studentsError as any)?.details && <div><strong>details:</strong> {(studentsError as any).details}</div>}
+                  {(studentsError as any)?.hint && <div><strong>hint:</strong> {(studentsError as any).hint}</div>}
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -328,6 +352,7 @@ export default function StudentsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+
 
           {/* Students Table */}
           {isLoading ? (

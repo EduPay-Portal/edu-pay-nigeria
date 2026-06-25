@@ -1,53 +1,42 @@
-## Diagnosis
+## Context
 
-Your Vercel environment and Supabase project don't match what the app code expects. Two issues:
+- Same code, same database (411 students confirmed via SQL, RLS policies are correct and use `has_role()`).
+- **Lovable preview** → Students page loads correctly.
+- **Vercel deploy** → Students page shows "No students found" even though the Admin Dashboard's count query on the same table returns 411.
 
-### Issue 1: Variable name mismatch
-Your code (`src/integrations/supabase/client.ts`) reads:
-- `VITE_SUPABASE_URL` ✅ (you have this)
-- `VITE_SUPABASE_PUBLISHABLE_KEY` ❌ (Vercel has `VITE_SUPABASE_ANON_KEY` instead)
+Since count succeeds but `select('*')` returns nothing, the `select` is almost certainly throwing a runtime error that React Query swallows into the UI as an empty list. The Vercel deploy hides this because we don't render the error.
 
-Result: the Supabase client is initialized with `undefined` key → every request fails with "Failed to fetch".
+## Plan
 
-### Issue 2: Supabase publishable key unavailable
-Your Supabase dashboard screenshot shows **"Publishable key unavailable"**. This means the project hasn't finished provisioning its API keys, OR you're looking at the wrong panel. The anon/publishable JWT key must exist for the frontend to authenticate.
+### 1. Make Supabase errors visible on the Students page
 
----
+Edit `src/pages/dashboard/admin/StudentsPage.tsx`:
 
-## Recommended fix (no code changes needed)
+- Pull `error` out of the `useQuery` for `admin-students`.
+- Add a `console.error('admin-students query failed', error)` inside the query function before re-throwing.
+- Render an `Alert` (destructive) above the table whenever `error` is truthy, showing `error.message` and (if present) `error.code` / `error.details` / `error.hint`. PostgREST returns these and they will tell us exactly what's wrong (RLS denial, column missing, row limit, JWT issue, etc.).
 
-### Step 1 — Get the anon key from Supabase
-In your Supabase dashboard for `fmajhzepqpnrzbtcdiix`:
-- Go to **Project Settings → API Keys** (not the "Copy" dropdown on the project home)
-- Copy the **`anon` `public`** JWT (long string starting with `eyJ...`)
-- If that page also says "unavailable", the project provisioning is incomplete — contact Supabase support or recreate the project.
+This is a tiny, presentation-only change — no business logic touched.
 
-### Step 2 — Fix Vercel environment variables
-In Vercel → Project → Settings → Environment Variables, add **both** names pointing to the same anon key value:
+### 2. Redeploy to Vercel and capture the error
 
-| Name | Value |
-|---|---|
-| `VITE_SUPABASE_URL` | `https://fmajhzepqpnrzbtcdiix.supabase.co` (keep) |
-| `VITE_SUPABASE_ANON_KEY` | `eyJ...` (keep — used by `src/lib/env.ts` validator) |
-| **`VITE_SUPABASE_PUBLISHABLE_KEY`** | `eyJ...` (**ADD THIS** — same value as anon key) |
-| `VITE_SUPABASE_PROJECT_ID` | `fmajhzepqpnrzbtcdiix` (add, optional but recommended) |
-| `VITE_PAYSTACK_PUBLIC_KEY` | `pk_test_...` (keep) |
+Once the change is live on `edu-pay-nigeria.vercel.app`:
 
-### Step 3 — Redeploy
-Vercel → Deployments → latest → **Redeploy** with "Use existing Build Cache" **OFF**. Vite inlines env vars at build time, so a cached build will still have the old (missing) values.
+1. Open the Students page.
+2. Screenshot the red error banner (or copy the text).
+3. Also open DevTools → Network → click the failing `student_profiles` request → copy the response body.
 
-### Step 4 — Verify
-Visit `https://edu-pay-nigeria.vercel.app/auth` → DevTools → Network:
-- You should see `POST https://fmajhzepqpnrzbtcdiix.supabase.co/auth/v1/token?grant_type=password`
-- Status should be **200** (success) or **400** (bad credentials) — no more "Failed to fetch"
+### 3. Apply the targeted fix
 
----
+Based on the error text, the fix will be one of:
 
-## Alternative (cleaner long-term fix — requires code change)
+- **JWT / auth mismatch on Vercel** (e.g. `JWT expired`, `invalid JWT`, or `permission denied`) → re-check that the Vercel `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are from the **same** Supabase project (both must belong to the new project, not a mix of old/new). Force a redeploy with build cache OFF.
+- **`Row level security` / `permission denied for table student_profiles`** → re-check the admin's row in `public.user_roles` exists in the new project for the logged-in admin's `auth.uid()`.
+- **`max-rows` / 416 range error from `.limit(2000)`** → lower the limit (e.g. 1000) or remove it.
+- **Network/CORS** → adjust Supabase project's allowed origins.
 
-Standardize on `VITE_SUPABASE_ANON_KEY` everywhere and stop maintaining two names. This would edit `src/integrations/supabase/client.ts` to read `VITE_SUPABASE_ANON_KEY`. Say the word and I'll switch to build mode and apply it.
+I will only ship the actual fix after we see the real error — no guessing.
 
----
+### Why this is the right next step
 
-## Out of scope (separate bug, already tracked)
-The Students/Parents/Transactions empty-list issue on the dashboard is a PostgREST embed/FK problem in the queries — unrelated to env vars. I'll plan that fix separately once auth is working.
+The database, RLS, and code are all known-good (proved by preview working). The only unknown is what Vercel's runtime is reporting, and right now the app hides it. Step 1 unblocks every other guess.
