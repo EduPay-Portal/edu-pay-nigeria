@@ -142,18 +142,9 @@ export default function ParentDashboard() {
                       <p className="text-2xl font-bold text-primary">
                         ₦{(child.wallets?.[0]?.balance || 0).toLocaleString('en-NG')}
                       </p>
-                      <Button 
-                        className="w-full mt-2"
-                        onClick={() => {
-                          setSelectedChild({
-                            id: child.user_id,
-                            name: `${child.profiles?.first_name} ${child.profiles?.last_name}`
-                          });
-                          setShowTopUpDialog(true);
-                        }}
-                      >
-                        Top Up Wallet
-                      </Button>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Fund this wallet by transferring to the virtual account above.
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -229,13 +220,6 @@ export default function ParentDashboard() {
           <ProfileSection />
         </TabsContent>
       </Tabs>
-
-      <TopUpWalletDialog 
-        open={showTopUpDialog} 
-        onOpenChange={setShowTopUpDialog}
-        studentId={selectedChild?.id}
-        studentName={selectedChild?.name}
-      />
     </div>
   );
 }

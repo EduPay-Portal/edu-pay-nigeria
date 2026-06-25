@@ -287,7 +287,7 @@ export default function TransactionsPage() {
                   onClick={() =>
                     downloadReceipt({
                       reference: lookupResult.reference,
-                      paystackReference: lookupResult.paystack_reference,
+                      providerReference: lookupResult.provider_reference ?? lookupResult.paystack_reference,
                       amount: Number(lookupResult.amount),
                       status: lookupResult.status,
                       type: lookupResult.type,
