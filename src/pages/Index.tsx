@@ -78,12 +78,7 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-lg" asChild>
                 <Link to="/auth">
-                  Login <ArrowRight className="ml-2 w-5 h-5" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link to="/auth">
-                  Get Started
+                  Sign In <ArrowRight className="ml-2 w-5 h-5" />
                 </Link>
               </Button>
             </div>
