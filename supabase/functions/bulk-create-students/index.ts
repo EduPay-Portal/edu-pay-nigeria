@@ -42,6 +42,42 @@ serve(async (req) => {
       },
     });
 
+    // === AUTHENTICATION & ADMIN ROLE CHECK ===
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const { data: { user } } = await supabaseAdmin.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const { data: isAdmin } = await supabaseAdmin.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin',
+    });
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: 'Admin role required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Audit who triggered the bulk import
+    await supabaseAdmin.from('audit_logs').insert({
+      actor_id: user.id,
+      action: 'bulk_create_students.invoked',
+      entity_type: 'students_import_staging',
+      entity_id: null,
+    });
+
     const { mode = 'all' } = await req.json();
 
     console.log(`Starting bulk create students - mode: ${mode}`);
