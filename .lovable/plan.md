@@ -1,47 +1,87 @@
-## Diagnosis
+## Two changes
 
-The error banner shows only `message: Bad Request` — no `code`, `details`, or `hint`. That's the giveaway: this is not a PostgREST/RLS error (those always come back with a code and a JSON body). It's the edge/proxy rejecting the HTTP request itself before PostgREST sees it.
+### 1. Server-side pagination on the Students table
 
-Why now and not on Lovable preview? You have **411 students**. The query in `StudentsPage.tsx` does:
+Today `StudentsPage.tsx` loads all rows (up to 2000) and filters/searches client-side. With 411+ students this is also why the request URL blew up. We'll push paging, search, and filters to PostgREST.
 
-```ts
-supabase.from('profiles').select(...).in('id', allIds)   // allIds = user_ids ∪ parent_ids
-supabase.from('wallets').select(...).in('user_id', userIds)
-```
+**Query refactor in `src/pages/dashboard/admin/StudentsPage.tsx`**
 
-`.in()` is sent as a URL query string: `id=in.(uuid1,uuid2,…uuid800+)`. With ~800 UUIDs that URL is ~30 KB. Vercel's edge / Cloudflare in front of Supabase rejects very long URLs with a bare **400 Bad Request** (no JSON body), which is exactly what we're seeing. Lovable preview goes through a different edge with a more permissive URL limit, so it worked there.
+- Add state: `page` (default 1), `pageSize` (default 50).
+- Replace the single `admin-students` query with a paginated one keyed on `['admin-students', page, pageSize, searchQuery, filters]`:
+  - Use `.select('*', { count: 'exact' })` on `student_profiles`.
+  - Apply filters server-side:
+    - `classLevels` → `.in('class_level', filters.classLevels)`
+    - `membershipStatus` → `.in('membership_status', …)`
+    - `boardingStatus` → `.in('boarding_status', …)`
+    - `hasDebt === true` → `.gt('debt_balance', 0)`; `false` → `.or('debt_balance.is.null,debt_balance.eq.0')`
+    - `searchQuery` → `.or('admission_number.ilike.%q%,class_level.ilike.%q%,registration_number.ilike.%q%')` (name search handled below)
+  - `.order('created_at', { ascending: false })` then `.range((page-1)*pageSize, page*pageSize - 1)`.
+- After student rows return, fetch their `profiles` (user + parent) and `wallets` with the existing **chunked `.in()`** logic — but now the page is at most 50 rows, so one round-trip each.
+- Name search: because first/last names live on `profiles`, run a parallel small lookup — when `searchQuery` is non-empty, first query `profiles` (`.or('first_name.ilike,last_name.ilike,email.ilike')` limited to e.g. 500 ids) and pass those `user_ids` into the `student_profiles` query via `.in('user_id', ids)` combined with the other search via `.or()` on a separate fetch then merge. Simpler: run two parallel paged queries (by-name-hits + by-admission-hits) and merge — but that complicates paging. **Chosen approach:** keep the search box for admission/class/registration only (server-side ilike), and add a small note "Search by name uses the Filter panel" — OR, simpler, keep client-side name filter applied *on top of* the current page. We'll go with: server-side search on `admission_number`, `class_level`, `registration_number`; name still client-filters the current page. This is the common pattern and avoids a costly cross-table search.
+- Remove the `.limit(2000)` cap.
 
-The count-only query on `AdminDashboard` works because it sends no `.in()` list.
+**Stats refactor**
 
-## Fix
+The five stat cards currently compute from the loaded array (which is now only 50 rows). Replace with a separate lightweight `['admin-students-stats']` query that runs server aggregates:
 
-Chunk the `.in(...)` lookups in `src/pages/dashboard/admin/StudentsPage.tsx` so no single request URL gets huge.
+- Total students: `select('id', { count: 'exact', head: true })` on `student_profiles`.
+- Sum of `school_fees`, sum of wallet `balance`, and VA count via an RPC `get_student_stats()` (new SECURITY DEFINER function returning `{ total_students, total_school_fees, total_wallet_balance, va_count }`).
+- Avg balance computed on client from the returned totals.
+- "Active Students" stays equal to total for now (matches current behaviour).
 
-### Changes
+**Pagination UI**
 
-1. Add a small helper inside the query function:
-   ```ts
-   const chunk = <T,>(arr: T[], size: number) =>
-     Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
-       arr.slice(i * size, i * size + size));
-   ```
-2. Replace the two `.in()` calls with chunked versions (chunk size **100**), running the chunks in parallel with `Promise.all` and concatenating results:
-   - `profiles` → loop over `chunk(allIds, 100)`, each does `.select('id, first_name, last_name, email').in('id', ids)`.
-   - `wallets` → loop over `chunk(userIds, 100)`, each does `.select('user_id, balance, currency').in('user_id', ids)`.
-3. Keep the existing error logging / surfacing — if any chunk fails we still throw and the red alert renders the real PostgREST error.
-4. No change to RLS, env vars, or business logic.
+Below the table, add a footer row:
+- Left: `Showing X–Y of N students`.
+- Right: `Previous` / `Page n of m` / `Next` buttons (shadcn `Button` with `ChevronLeft`/`ChevronRight`).
+- Page size selector (25 / 50 / 100) using shadcn `Select`.
 
-### Why chunk size 100
+**Loading & empty states**
 
-100 UUIDs ≈ 3.7 KB of query string — comfortably under every known edge URL limit (8 KB Cloudflare, 14 KB Vercel) with headroom for filters. Five parallel round-trips for 411 students is still well under one second.
+- Show a skeleton table on first load and an inline spinner overlay when paging.
+- Keep the existing red `Alert` for `studentsError`.
+
+**Export Credentials**
+
+`handleExportCredentials` currently exports the in-memory list — which would now only be the visible page. Change it to fetch all matching rows (respecting filters, ignoring pagination) in chunks of 1000 via `.range()` loops, then build the CSV. Keep the existing toast.
+
+**Bulk-VA banner**
+
+`studentsWithoutVA = totalStudents - virtualAccountsCount` keeps working because both come from server aggregates.
+
+### 2. Rename the app to "Ahmadiyya Science College Ilaro – Payment Portal (ASCI)"
+
+Use two display forms:
+- **Full**: `Ahmadiyya Science College Ilaro – Payment Portal` (page titles, hero, footer, receipts).
+- **Short**: `ASCI Payment Portal` (sidebar collapsed state, nav, small chips).
+
+**Files to update (user-facing strings only — leave existing email domains, DB data, migration files, and internal log prefixes untouched):**
+
+- `index.html` — `<title>`, `meta[name=author]`, `meta[name=description]` (mention ASCI), `og:title`, `og:description`, `twitter:title`, `twitter:description`.
+- `src/pages/Index.tsx` — replace all "EduPay Connect" / "EduPay" mentions in headings, hero copy, testimonials, CTA, footer copyright, and `<img alt>`.
+- `src/pages/Auth.tsx` — heading copy and `<img alt>`.
+- `src/components/dashboard/Sidebar.tsx` — `<img alt>` to "ASCI Payment Portal" + add a small wordmark next to logo when expanded.
+- `src/lib/receipt.ts` — change the receipt header line to `Ahmadiyya Science College Ilaro — Payment Portal`.
+- `src/pages/dashboard/admin/SettingsPage.tsx` — default `school-name` value updated to `Ahmadiyya Science College Ilaro`.
+
+**Not changed (out of scope / would break things):**
+
+- `@edupay.school` email domain in `bulk-create-students`, `CSVUploadCard`, staging migration — these are real account identifiers already in the database.
+- `[EduPay …]` log prefixes in `src/lib/logger.ts` (internal only).
+- Docs (`ONBOARDING.md`, `MIGRATION.md`, `SUPABASE_SETUP.md`) — keep referring to the codebase by its repo name.
+- The published Lovable subdomain `edu-pay-nigeria.lovable.app` — that's a deploy URL, not in code.
+- The logo image asset itself (`logo_edupay.png`) — keep the file, only update its `alt` text. If you want a new logo I'll need an upload.
 
 ### Verification
 
-After deploying:
-- Students table should populate with all 411 rows.
-- If anything still fails, the red alert will now show a real PostgREST `code` + `details` (not a bare "Bad Request"), and we fix from there.
+- Open Students page → table shows 50 rows, paging buttons work, total count = 411.
+- Apply a class filter → page resets to 1 and count updates.
+- Type in search → admission/class/registration matches show up across the dataset; name typing narrows the visible page.
+- Export Credentials → CSV contains all 411 rows (or filtered count).
+- Browser tab title and landing/login pages show the new ASCI name.
 
-### Out of scope
+## Technical notes
 
-- Pagination / server-side search — worth doing later for scale (>2,000 students), but not needed to unblock this bug.
-- Removing the `.limit(2000)` — leave it; it's a safety cap.
+- The new RPC `get_student_stats()` will be a single migration, `SECURITY DEFINER`, restricted via `has_role(auth.uid(),'admin')` inside the function body — no policy needed.
+- React Query: use `keepPreviousData: true` so the table doesn't blank between pages.
+- All chunked-`.in()` logic from the previous fix stays — it's still used for profiles/wallets lookups per page.

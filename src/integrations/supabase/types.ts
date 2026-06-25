@@ -676,6 +676,16 @@ export type Database = {
           total_amount: number
         }[]
       }
+      get_student_stats: {
+        Args: never
+        Returns: {
+          total_debt: number
+          total_school_fees: number
+          total_students: number
+          total_wallet_balance: number
+          va_count: number
+        }[]
+      }
       get_unmatched_webhooks: {
         Args: never
         Returns: {
