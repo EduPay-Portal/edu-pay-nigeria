@@ -95,13 +95,7 @@ export const Sidebar = () => {
       <div className="p-4 border-b border-sidebar-border bg-sidebar">
         <div className="flex items-center justify-between">
           {!isCollapsed ? (
-            <div className="flex items-center gap-2 min-w-0">
-              <img src={logo} alt="ASCI Payment Portal" className="h-8 w-auto shrink-0" />
-              <div className="min-w-0">
-                <p className="text-xs font-bold leading-tight text-sidebar-foreground truncate">ASCI</p>
-                <p className="text-[10px] leading-tight text-sidebar-foreground/70 truncate">Payment Portal</p>
-              </div>
-            </div>
+            <img src={logo} alt="ASCI Payment Portal" className="h-14 w-full object-contain" />
           ) : (
             <img src={logo} alt="ASCI" className="h-6 w-auto mx-auto" />
           )}
