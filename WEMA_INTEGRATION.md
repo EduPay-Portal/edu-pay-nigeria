@@ -1,8 +1,12 @@
 # Wema Bank Direct DVA Integration
 
-This platform now uses **direct Wema Bank Virtual NUBANs** as the primary
-collection method for student fees. Paystack remains wired only for **card
-top-ups**.
+> **2026 UPDATE:** Paystack integration has been fully deprecated. Wema Bank DVA
+> is the **sole** payment provider. Card top-ups via Paystack have been removed;
+> wallets are funded exclusively via bank transfer to dedicated Wema NUBANs.
+
+This platform uses **direct Wema Bank Virtual NUBANs** as the sole collection
+method for student fees.
+
 
 ## Architecture
 
