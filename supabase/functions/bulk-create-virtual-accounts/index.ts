@@ -97,6 +97,7 @@ serve(async (req) => {
             headers: {
               "Content-Type": "application/json",
               Authorization: authHeader,
+              "x-request-id": requestId,
             },
             body: JSON.stringify({
               student_id: student.user_id,
@@ -137,6 +138,11 @@ serve(async (req) => {
       .filter((r) => !r.success)
       .map((r) => ({ student_id: r.student_id, error: r.error }));
 
+    await writeAudit(supabase, {
+      actorId, action: "bulk_create_virtual_accounts.completed", requestId, ip,
+      metadata: { total: toProcess.length, successful, failed },
+    });
+
     return new Response(
       JSON.stringify({
         message: "Bulk virtual account creation completed",
@@ -144,14 +150,15 @@ serve(async (req) => {
         successful,
         failed,
         errors: errors.length > 0 ? errors : undefined,
+        request_id: requestId,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
-    console.error("Error in bulk creation:", error);
+    console.error("Error in bulk creation:", error, "request_id=", requestId);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: errorMessage, request_id: requestId }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
