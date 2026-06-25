@@ -45,7 +45,7 @@ export function generateReceiptPdf(data: ReceiptData): jsPDF {
   doc.text('Payment Receipt', margin, 50);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
-  doc.text('EduPay Nigeria — School Payment Platform', margin, 70);
+  doc.text('Ahmadiyya Science College Ilaro — Payment Portal', margin, 70);
 
   // Status pill
   const pill = data.status === 'completed' ? GREEN : AMBER;

@@ -36,7 +36,8 @@ const Index = () => {
         <div className="container mx-auto px-4 lg:px-8 py-4">
           <nav className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <img src={logo} alt="EduPay Connect" className="h-10 w-auto" />
+              <img src={logo} alt="ASCI Payment Portal" className="h-10 w-auto" />
+
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
@@ -64,7 +65,7 @@ const Index = () => {
           <div className="space-y-8 animate-fade-in">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
               <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium text-primary">Welcome to EduPay Connect</span>
+              <span className="text-sm font-medium text-primary">Welcome to the ASCI Payment Portal</span>
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
@@ -279,7 +280,7 @@ const Index = () => {
         <div className="container mx-auto px-4 lg:px-8">
           <div className="text-center mb-10 space-y-3">
             <h2 className="text-3xl md:text-5xl font-bold">
-              Why schools <span className="text-primary">trust EduPay</span>
+              Why parents <span className="text-primary">trust ASCI</span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Join leading Nigerian schools using our platform to enhance transparency and efficiency
@@ -346,7 +347,7 @@ const Index = () => {
               What our <span className="text-primary">users say</span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Real feedback from schools and parents using EduPay Connect
+              Real feedback from parents and staff using the ASCI Payment Portal
             </p>
           </div>
 
@@ -358,7 +359,7 @@ const Index = () => {
                 ))}
               </div>
               <p className="text-lg leading-relaxed italic">
-                "EduPay Connect has completely transformed how we manage school fees. The automated notifications and real-time tracking have saved us countless hours and eliminated payment disputes."
+                "The ASCI Payment Portal has completely transformed how we manage school fees. The automated notifications and real-time tracking have saved us countless hours and eliminated payment disputes."
               </p>
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
@@ -428,7 +429,7 @@ const Index = () => {
                   Ready to transform your school's finances?
                 </h2>
                 <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                  Join leading Nigerian schools using EduPay Connect to streamline operations and enhance transparency
+                  Join the ASCI community using our Payment Portal to streamline operations and enhance transparency
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
                   <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-lg text-lg" asChild>
@@ -457,7 +458,7 @@ const Index = () => {
             {/* Column 1 - Brand */}
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
-                <img src={logo} alt="EduPay Connect" className="h-10 w-auto" />
+                <img src={logo} alt="ASCI Payment Portal" className="h-10 w-auto" />
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Nigeria's most trusted digital payment ecosystem for school fee management. Secure, transparent, and efficient.
@@ -500,7 +501,7 @@ const Index = () => {
 
           <div className="border-t pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              © 2025 EduPay Connect. All rights reserved.
+              © 2025 Ahmadiyya Science College Ilaro – Payment Portal. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
               <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
