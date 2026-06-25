@@ -96,7 +96,7 @@ const Auth = () => {
       <div className="relative lg:w-[40%] w-full min-h-[30vh] lg:min-h-screen bg-gradient-to-br from-[#0d4a6b] to-[#082a3d] p-8 lg:p-12 flex flex-col">
         {/* Logo at top */}
         <div className="flex items-center text-white mb-8">
-          <img src={logo} alt="EduPay Connect" className="h-10 w-auto brightness-0 invert" />
+          <img src={logo} alt="ASCI Payment Portal" className="h-10 w-auto brightness-0 invert" />
         </div>
         
         {/* Centered content */}
@@ -107,7 +107,7 @@ const Auth = () => {
           <p className="text-white/90 text-base lg:text-lg mb-8 max-w-md">
             {isSignUp 
               ? "Sign in to access your dashboard and manage your payments"
-              : "Join EduPay Connect today and simplify your school payments"
+              : "Join the ASCI Payment Portal today and simplify your school payments"
             }
           </p>
           <Button
@@ -134,7 +134,7 @@ const Auth = () => {
             </h2>
             <p className="text-muted-foreground">
               {isSignUp 
-                ? "Create your account to get started with EduPay Connect"
+                ? "Create your account to get started with the ASCI Payment Portal"
                 : "Sign in to your account to continue"
               }
             </p>

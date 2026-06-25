@@ -42,7 +42,7 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="school-name">School Name</Label>
-                <Input id="school-name" defaultValue="EduPay Connect School" />
+                <Input id="school-name" defaultValue="Ahmadiyya Science College Ilaro" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="school-address">Address</Label>
