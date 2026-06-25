@@ -1,71 +1,86 @@
+## Goal
 
-# Paystack Removal — UI, Dead Code & Card Top-ups
+Verify the prior security fixes hold, then add defense-in-depth: an audit dashboard, consistent admin guards everywhere, and automated tests proving unauthorized callers are blocked.
 
-Per your earlier answers: remove Paystack from UI/docs/dead code, and remove card top-ups entirely (DVA-only) until ALATPay is wired up later. Database columns and the `paystack_webhook_events` table stay intact for historical/audit data — renaming them risks corrupting existing records.
+## 1. Re-run security scan
 
-## Safety guarantees
+- Call `security--run_security_scan` and review findings.
+- Cross-check against the 8 already-fixed internal_ids. Anything new becomes a follow-up item surfaced to you — not auto-fixed in this plan.
 
-- No DB schema changes. No column renames. No data migrations.
-- `wema-webhook`, `dva-create`, `dva-reissue`, `simulate-payment`, and the DVA auto-creation trigger are unchanged in behavior.
-- Reconciliation page keeps working — the SQL helper functions and their column names are untouched.
-- Only Paystack-specific dead branches and user-visible labels change.
+## 2. Admin Audit Log Dashboard
 
-## 1. UI text — remove user-visible "Paystack" wording
+The `audit_logs` table and a basic `AuditLogPage` already exist. Upgrade them into a real dashboard.
 
-| File | Change |
-|---|---|
-| `src/pages/dashboard/admin/WebhooksPage.tsx` | "Monitor and manage Paystack webhook notifications" → "Monitor and manage payment webhook notifications"; same in log subtitle |
-| `src/pages/dashboard/admin/ReconciliationPage.tsx` | "received from Paystack" → "received from the payment provider" |
-| `src/pages/dashboard/admin/PaymentSimulatorPage.tsx` | "never touch real money or the live Paystack account" → "never touch real money or live accounts" |
-| `src/pages/dashboard/admin/TransactionsPage.tsx` | "Paystack Ref" column label → "Provider Ref" |
-| `src/pages/PaymentSuccess.tsx` | Read `provider_reference` (already populated by migration) instead of `paystack_reference`; rename label to "Payment Reference" |
-| `src/pages/Index.tsx` | Remove Paystack mention from landing copy |
-| `src/lib/receipt.ts` | "Paystack Ref" → "Provider Ref" |
+**Schema additions (migration):**
+- Add `request_id text` and `metadata jsonb` columns to `audit_logs` (if not already present beyond current 9 cols — will confirm during build).
+- Add index on `(action, created_at desc)` and `(actor_id, created_at desc)`.
 
-## 2. Remove card top-up flow (Paystack Inline)
+**Edge function instrumentation:**
+Standardize a helper `_shared/audit.ts` that writes:
+- `actor_id`, `action`, `entity_type`, `entity_id`, `request_id` (from `x-request-id` header or generated UUID), `ip` (from `x-forwarded-for`), `metadata`.
 
-Delete:
-- `src/hooks/usePaystackPayment.ts`
-- `src/components/dialogs/TopUpWalletDialog.tsx`
-- `<script src="https://js.paystack.co/v1/inline.js">` from `index.html`
-- `VITE_PAYSTACK_PUBLIC_KEY` from `.env.example` and from the Zod schema in `src/lib/env.ts`
+Wire it into:
+- `admin-create-user` → `user.create`
+- `bulk-create-students` → `bulk_create_students.invoked` (exists) + per-student `student.create` + final `bulk_create_students.completed` with counts
+- `bulk-create-virtual-accounts` → `bulk_create_virtual_accounts.invoked` + per-VA `virtual_account.create`
+- `dva-create` → `dva.create` (exists) + add request_id
 
-Update:
-- `src/components/dashboard/WalletCard.tsx` — replace the "Top Up" button with a small "Fund via Virtual Account" note that scrolls to / links to the Virtual Account card. Users keep funding via DVA bank transfer (already the primary flow).
-- Any other importer of `TopUpWalletDialog` gets its trigger removed.
+**Dashboard UI (`AuditLogPage.tsx`):**
+- Filter chips: action category (user creation, bulk import, VA creation, other), date range, actor search.
+- Columns: timestamp, action, actor (resolved to email via join), entity, request_id, IP.
+- Pagination (50/page) instead of fixed 200 limit.
+- Detail drawer showing full `metadata` + `before`/`after` JSON.
+- Empty + loading + error states per project conventions.
 
-## 3. Remove dead Paystack code / artifacts
+## 3. Harden role checks
 
-- Delete `supabase/functions/paystack-webhook/` and call `supabase--delete_edge_functions` for `paystack-webhook`.
-- Delete `PAYSTACK_SETUP.md`.
-- After confirming nothing else reads them, delete the `PAYSTACK_SECRET_KEY` and `PAYSTACK_PUBLIC_KEY` runtime secrets via `secrets--delete_secret`.
-- `supabase/functions/_shared/payments/registry.ts` — drop the dead `paystack: undefined` slot and its deprecation comment; registry becomes Wema-only.
-- `supabase/functions/_shared/payments/types.ts` — narrow `ProviderName` to `"wema"` (keep "mock" if referenced).
-- `supabase/functions/dva-create/index.ts` — stop writing `paystack_customer_code` (column kept for legacy rows; new rows already use `provider_customer_id`).
-- `src/hooks/useVirtualAccount.ts` — drop the `paystack_customer_code` field from the TS interface (column still exists in DB; we just stop reading it).
-- `scripts/migration/04_deploy_functions.sh` — remove `paystack-webhook` from the deploy list.
-- `scripts/migration/02_export_data.sh`, `05_set_secrets.sh`, `07_smoke_test.sh` — strip Paystack lines so the migration scripts don't require dead secrets.
+**Frontend (`ProtectedRoute.tsx`):** already denies null roles. Audit `App.tsx` routes to confirm every `/dashboard/admin/*` is wrapped with `allowedRoles={['admin']}`. Fix any gaps.
 
-## 4. Documentation
+**`useUserRole` hook:** on error, return `null` explicitly instead of throwing (so ProtectedRoute denies cleanly rather than surfacing a query error).
 
-- Delete `PAYSTACK_SETUP.md`.
-- `README.md`, `ONBOARDING.md`, `SUPABASE_SETUP.md`, `MIGRATION.md`, `WEMA_INTEGRATION.md` — strip Paystack instructions; keep a single sentence: "Paystack integration has been deprecated; Wema Bank DVA is the sole payment provider."
+**Edge functions — standardize via `_shared/auth.ts` helper:**
+```
+requireAdmin(req, supabaseAdmin) → { user, actorId } | Response(401|403)
+```
+Returns the 401/403 Response when unauthorized; otherwise the authenticated admin context. Allows service-role bypass only where explicitly opted in (`requireAdminOrServiceRole`).
 
-## 5. What we deliberately keep (and why)
+Apply to every privileged function:
+- `admin-create-user`, `bulk-create-students`, `bulk-create-virtual-accounts`, `dva-create`, `dva-reissue`, `create-virtual-account`, `reconcile-transactions`, `simulate-payment`.
 
-- Table `paystack_webhook_events`, columns `paystack_reference` / `paystack_customer_code`, index `idx_transactions_paystack_reference`, and SQL helpers `get_unmatched_webhooks` / `get_duplicate_transactions` / `get_orphaned_transactions` / `get_reconciliation_summary` — historical records and audit integrity. Renaming would break existing rows; reconciliation works against the historical names.
-- Historical SQL files under `migrations/` and `supabase/migrations/` — they are part of the project's database history and must not be edited.
+Public webhook endpoint `wema-webhook` stays signature-verified, not JWT-gated.
 
-## 6. Validation before I close the task
+## 4. Automated security tests
 
-- `rg -i "paystack" src/ supabase/functions/ index.html` returns zero hits (excluding the DB identifiers we keep).
-- TypeScript build passes (`tsgo`).
-- Preview click-through: Sidebar → Webhooks, Reconciliation, Payment Simulator, Transactions, Wallet, Payment Success — no "Paystack" text anywhere, no broken buttons, DVA top-up instructions visible.
-- `simulate-payment` still records an event and credits the wallet.
-- `wema-webhook` path unaffected.
+Add Deno tests under `supabase/functions/<name>/index.test.ts` using existing dotenv pattern. For each privileged function, assert:
 
-## Deliverable at the end
+1. No `Authorization` header → 401.
+2. Anon key as bearer → 401 (no user).
+3. Authenticated non-admin user (signed in with a seeded `student` test account) → 403.
+4. Admin user → 200 (smoke; mocked payloads where external calls would happen, or `dry_run` flag).
 
-1. Audit table of every Paystack reference found and the action taken (replace / delete / keep-with-reason).
-2. List of files modified, deleted, edge functions deleted, secrets deleted.
-3. Validation report with the `rg` evidence and the build status.
+Test targets: `admin-create-user`, `bulk-create-students`, `bulk-create-virtual-accounts`, `dva-create`, `dva-reissue`, `reconcile-transactions`, `simulate-payment`.
+
+Also add a DB-level test that verifies `anon` and `authenticated` roles cannot `EXECUTE` the SECURITY DEFINER functions hardened previously (uses `has_function_privilege`).
+
+Requires two seeded test users in `.env`:
+- `TEST_ADMIN_EMAIL` / `TEST_ADMIN_PASSWORD`
+- `TEST_STUDENT_EMAIL` / `TEST_STUDENT_PASSWORD`
+
+If those env vars are missing, tests skip with a clear message rather than fail.
+
+## Technical notes
+
+- One migration for audit_logs columns + indexes.
+- One new shared file `supabase/functions/_shared/auth.ts` (admin guard) and `_shared/audit.ts` (writer).
+- No DB data changes; only schema + code.
+- No frontend dependency changes; reuses shadcn Table, Select, DatePicker, Drawer.
+
+## Out of scope
+
+- Re-doing any of the 8 already-fixed findings.
+- Card top-ups / ALATPay (still pending external readiness).
+- Webhook signature changes.
+
+## Open question
+
+Do you already have seeded non-admin + admin test accounts I can reference in `.env`, or should the test setup script create them on first run?
