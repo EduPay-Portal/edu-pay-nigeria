@@ -702,13 +702,6 @@ export type Database = {
           paystack_reference: string
         }[]
       }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
       mark_staging_processed: {
         Args: {
           error_msg?: string
