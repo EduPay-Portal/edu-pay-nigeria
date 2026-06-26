@@ -1,28 +1,35 @@
-## Goal
-Restrict account creation to admin-provisioned users only by removing public sign-up from the Auth page.
+## What I'll do
 
-## Changes
+Three small, independent deliverables — no app behavior changes.
 
-**`src/pages/Auth.tsx`**
-- Remove the "Sign Up" tab / toggle and its form (first name, last name, role selector, password rules UI).
-- Render only the Sign In form as the default and only view.
-- Remove any "Don't have an account? Sign up" links.
-- Keep "Forgot password" flow intact.
-- Remove now-unused imports (signUpSchema, SignUpFormData, role select, etc.).
+### 1. Save a rendered flow diagram
+- Write `/mnt/documents/App_Update_Flow.mmd` with the Mermaid diagram from the chat (You → Lovable → Preview / GitHub → Vercel → Live Site, with Lovable Cloud branch for backend).
+- Surface it as a `<lov-artifact>` so you can open, zoom, and share it.
 
-**`src/pages/Index.tsx`** (landing page)
-- Replace any "Sign Up" / "Create account" CTAs with "Sign In" (or remove them) so nothing routes to a signup view.
+### 2. Check your GitHub + Vercel setup
+- Read `vercel.json` and `package.json` and confirm:
+  - SPA fallback rewrite to `/` is present (so deep links don't 404 on refresh).
+  - Long-term cache headers on `/assets/*`.
+  - Build command + output directory match Vite defaults (`npm run build` → `dist`).
+  - `VITE_` prefixed env vars are the only ones the client needs.
+- Report findings in chat. If anything is missing or wrong, I'll fix `vercel.json` in the same turn.
+- I will NOT touch GitHub remotes, Vercel project settings, or any secret — those live outside the repo.
 
-**Supabase Auth config**
-- Call `configure_auth` with `disable_signup: true` so the backend itself rejects any signup attempt (defense in depth — even if someone hits the API directly, no account is created). Admins can still create users via the existing `admin-create-user` edge function because it uses the service role.
+### 3. Add `HOW_IT_WORKS.md` to the repo
+A friendly, 9-year-old-level guide at the project root. Sections:
+- **The 3 places your app lives** (Lovable, GitHub, Vercel) + Lovable Cloud as the backend helper.
+- **What happens when you ask for a change** (numbered 1–5 flow).
+- **Frontend vs Backend** — which changes go through Vercel and which deploy instantly.
+- **What you should do as the boss** — wait ~2 min after publish, don't paste secrets in chat, etc.
+- **Flow diagram** — embedded Mermaid block (GitHub renders it natively) plus an ASCII fallback.
+- **Troubleshooting quick table** — "live site looks old" → wait for Vercel; "login broken" → check Lovable Cloud; "404 on refresh" → SPA rewrite.
 
-## Out of scope
-- No changes to admin user-creation flows (`AddParentDialog`, `AddStudentDialog`, `admin-create-user`, bulk import) — those continue to work.
-- No changes to existing users, roles, RLS, or sign-in behavior.
-- No password reset changes.
+### Out of scope
+- No code, UI, database, or auth changes.
+- No publishing or deploying.
+- No edits to `.env`, Supabase config, or GitHub/Vercel dashboards.
 
-## Verification
-- `/auth` shows only Sign In.
-- Landing page has no sign-up CTA.
-- Direct call to `supabase.auth.signUp` returns "Signups not allowed".
-- Admin can still create new parent/student accounts from the dashboard.
+### Files touched
+- `/mnt/documents/App_Update_Flow.mmd` (new, user-visible artifact)
+- `vercel.json` (only if the audit finds a gap)
+- `HOW_IT_WORKS.md` (new, repo root)
