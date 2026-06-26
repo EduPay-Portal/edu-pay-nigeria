@@ -1,35 +1,47 @@
-## What I'll do
+## Goal
+Give you full ownership of your backend by moving from Lovable Cloud to your own Supabase project — no Lovable dependency for database, auth, or edge functions.
 
-Three small, independent deliverables — no app behavior changes.
+Good news: your repo already contains a complete migration runbook (`MIGRATION.md`) and 7 helper scripts in `scripts/migration/`. This plan wraps them in a friendly, kid-simple guide and adds a one-page checklist so you can actually do the move.
 
-### 1. Save a rendered flow diagram
-- Write `/mnt/documents/App_Update_Flow.mmd` with the Mermaid diagram from the chat (You → Lovable → Preview / GitHub → Vercel → Live Site, with Lovable Cloud branch for backend).
-- Surface it as a `<lov-artifact>` so you can open, zoom, and share it.
+## What you'll own after migration
+- Your own Supabase project (database, auth, edge functions, secrets) — billed directly to you, not via Lovable
+- GitHub repo (already yours)
+- Vercel deployment (already yours)
+- Paystack + Wema webhooks pointing at your new Supabase
 
-### 2. Check your GitHub + Vercel setup
-- Read `vercel.json` and `package.json` and confirm:
-  - SPA fallback rewrite to `/` is present (so deep links don't 404 on refresh).
-  - Long-term cache headers on `/assets/*`.
-  - Build command + output directory match Vite defaults (`npm run build` → `dist`).
-  - `VITE_` prefixed env vars are the only ones the client needs.
-- Report findings in chat. If anything is missing or wrong, I'll fix `vercel.json` in the same turn.
-- I will NOT touch GitHub remotes, Vercel project settings, or any secret — those live outside the repo.
+Lovable becomes optional — only useful if you still want the AI editor.
 
-### 3. Add `HOW_IT_WORKS.md` to the repo
-A friendly, 9-year-old-level guide at the project root. Sections:
-- **The 3 places your app lives** (Lovable, GitHub, Vercel) + Lovable Cloud as the backend helper.
-- **What happens when you ask for a change** (numbered 1–5 flow).
-- **Frontend vs Backend** — which changes go through Vercel and which deploy instantly.
-- **What you should do as the boss** — wait ~2 min after publish, don't paste secrets in chat, etc.
-- **Flow diagram** — embedded Mermaid block (GitHub renders it natively) plus an ASCII fallback.
-- **Troubleshooting quick table** — "live site looks old" → wait for Vercel; "login broken" → check Lovable Cloud; "404 on refresh" → SPA rewrite.
+## Deliverables (docs only — no code or backend changes yet)
 
-### Out of scope
-- No code, UI, database, or auth changes.
-- No publishing or deploying.
-- No edits to `.env`, Supabase config, or GitHub/Vercel dashboards.
+### 1. New friendly guide: `OWN_YOUR_BACKEND.md` (repo root)
+Written at the same 9-year-old level as `HOW_IT_WORKS.md`. Sections:
+- "Why move?" — what changes, what stays the same
+- "The 3 houses your app lives in today" vs "after migration" (diagram)
+- 7-phase checklist with checkboxes (mirrors `MIGRATION.md` phases 0–7)
+- "What you need before starting" (accounts, CLIs, ~2–3 days of work)
+- "The day of the move" — 30-minute webhook cutover window
+- "If something breaks" — rollback in 3 steps
+- "After 7 clean days" — how to safely turn off Lovable Cloud
+- Embedded Mermaid diagram of the new architecture
 
-### Files touched
-- `/mnt/documents/App_Update_Flow.mmd` (new, user-visible artifact)
-- `vercel.json` (only if the audit finds a gap)
-- `HOW_IT_WORKS.md` (new, repo root)
+### 2. New rendered diagram: `/mnt/documents/Own_Your_Backend.mmd`
+Mermaid flowchart showing the target architecture (GitHub → Vercel → Your Supabase; Paystack/Wema → Your Supabase webhooks). Shareable artifact.
+
+### 3. Light touch-ups to existing docs
+- `HOW_IT_WORKS.md` — add a one-line pointer at the bottom: "Want to own everything yourself? See `OWN_YOUR_BACKEND.md`."
+- `MIGRATION.md` — leave as-is (it's already the authoritative technical runbook). The new guide links into it for each phase.
+
+## Out of scope (this plan does NOT do)
+- Does NOT create a new Supabase project for you (you do that during execution)
+- Does NOT touch the database, edge functions, secrets, RLS, or auth config
+- Does NOT change `.env`, `supabase/config.toml`, or any source code
+- Does NOT disconnect Lovable Cloud (that's a deliberate step you take after the 7-day dual-run)
+- Does NOT modify Vercel or GitHub settings
+
+## Files to touch
+- `OWN_YOUR_BACKEND.md` (new, repo root)
+- `/mnt/documents/Own_Your_Backend.mmd` (new, rendered artifact)
+- `HOW_IT_WORKS.md` (1-line addition at the bottom)
+
+## When you're ready to actually run the migration
+Approve this plan first → I write the guide. Then, when you're ready to execute, you run the scripts in `scripts/migration/` from your local machine following the new guide + `MIGRATION.md`. Estimated effort: 2–3 working days, 1 calendar week recommended (includes 48h safety window).
