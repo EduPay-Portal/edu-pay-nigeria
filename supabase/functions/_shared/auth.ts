@@ -64,12 +64,16 @@ export async function requireAdmin(
     return json({ error: "Unauthorized", request_id: requestId }, 401);
   }
 
-  const { data: isAdmin, error: roleError } = await supabase.rpc("has_role", {
-    _user_id: user.id,
-    _role: "admin",
-  });
-  // Explicit null/false denial — never trust missing roles.
-  if (roleError || isAdmin !== true) {
+  // has_role lives in the `private` schema (not exposed via PostgREST), so
+  // query user_roles directly with the service-role client which bypasses RLS.
+  const { data: roleRow, error: roleError } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  // Explicit null denial — never trust missing roles.
+  if (roleError || !roleRow) {
     return json({ error: "Admin role required", request_id: requestId }, 403);
   }
 
