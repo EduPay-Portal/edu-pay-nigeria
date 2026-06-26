@@ -113,3 +113,7 @@ ASCII fallback (in case Mermaid doesn't render):
 - **Environment variables**: `.env` (only `VITE_*` ones reach the browser)
 
 That's the whole picture. Happy building!
+
+---
+
+> 🏠 **Want to fully own your backend** (no Lovable Cloud dependency)? See [`OWN_YOUR_BACKEND.md`](./OWN_YOUR_BACKEND.md) for the friendly checklist and [`MIGRATION.md`](./MIGRATION.md) for the technical runbook.
