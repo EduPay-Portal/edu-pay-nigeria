@@ -33,6 +33,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useEffect, useState } from "react";
 import logo from "@/assets/logo_asc.png";
+import heroPhoto from "@/assets/asci-students.jpg.asset.json";
 
 const paymentSteps = [
   {
@@ -133,50 +134,62 @@ const Index = () => {
         />
 
         <div className="relative container mx-auto px-4 lg:px-8 py-12 md:py-16">
-          <div className="max-w-2xl animate-fade-in space-y-6">
-            <span className="block text-xs md:text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-              Welcome to the ASCI Payment Portal
-            </span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+            <div className="animate-fade-in space-y-6">
+              <span className="block text-xs md:text-sm font-semibold uppercase tracking-[0.2em] text-primary">
+                Welcome to the ASCI Payment Portal
+              </span>
 
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight text-foreground">
-              Pay your school fees{" "}
-              <span className="text-accent">online</span>
-            </h1>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight text-foreground">
+                Pay your school fees{" "}
+                <span className="text-accent">online</span>
+              </h1>
 
-            <p className="text-lg text-muted-foreground max-w-lg">
-              Nigeria's most trusted digital payment ecosystem for schools — secure virtual accounts, instant wallet credits, and full transparency for every parent.
-            </p>
+              <p className="text-lg text-muted-foreground max-w-lg">
+                Nigeria's most trusted digital payment ecosystem for schools — secure virtual accounts, instant wallet credits, and full transparency for every parent.
+              </p>
 
-            <div className="flex flex-wrap items-center gap-5 pt-2">
-              <Button
-                size="lg"
-                className="bg-primary hover:bg-primary/90 rounded-full px-8 shadow-lg"
-                asChild
-              >
-                <Link to="/auth">
-                  Sign In <ArrowRight className="ml-2 w-5 h-5" />
-                </Link>
-              </Button>
+              <div className="flex flex-wrap items-center gap-5 pt-2">
+                <Button
+                  size="lg"
+                  className="bg-primary hover:bg-primary/90 rounded-full px-8 shadow-lg"
+                  asChild
+                >
+                  <Link to="/auth">
+                    Sign In <ArrowRight className="ml-2 w-5 h-5" />
+                  </Link>
+                </Button>
 
-              <Button
-                size="lg"
-                variant="outline"
-                className="rounded-full border-primary text-primary hover:bg-primary hover:text-primary-foreground px-7"
-                onClick={() => setPaymentOpen(true)}
-              >
-                <Workflow className="mr-2 w-5 h-5" />
-                Payment Process
-              </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="rounded-full border-primary text-primary hover:bg-primary hover:text-primary-foreground px-7"
+                  onClick={() => setPaymentOpen(true)}
+                >
+                  <Workflow className="mr-2 w-5 h-5" />
+                  Payment Process
+                </Button>
 
-              <a
-                href="#features"
-                className="text-sm font-semibold text-foreground hover:text-primary underline-offset-4 hover:underline transition-colors"
-              >
-                Learn more
-              </a>
+                <a
+                  href="#features"
+                  className="text-sm font-semibold text-foreground hover:text-primary underline-offset-4 hover:underline transition-colors"
+                >
+                  Learn more
+                </a>
+              </div>
+            </div>
+
+            <div className="relative w-full animate-fade-in">
+              <img
+                src={heroPhoto.url}
+                alt="ASCI students gathered on the school field"
+                loading="eager"
+                className="w-full h-56 sm:h-72 md:h-80 lg:h-[440px] object-cover rounded-[5px] shadow-xl"
+              />
             </div>
           </div>
         </div>
+
       </section>
 
       {/* Payment Process Modal */}
