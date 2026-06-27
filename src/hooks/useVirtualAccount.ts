@@ -18,6 +18,18 @@ export interface VirtualAccount {
   updated_at: string;
 }
 
+export interface VirtualAccountProvisioningJob {
+  id: string;
+  student_id: string;
+  provider: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  attempts: number;
+  request_id: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export function useVirtualAccount(studentId?: string) {
   const { user } = useAuth();
   const targetUserId = studentId || user?.id;
@@ -46,5 +58,33 @@ export function useVirtualAccount(studentId?: string) {
     enabled: !!targetUserId,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
+  });
+}
+
+export function useVirtualAccountProvisioningJob(studentId?: string) {
+  const { user } = useAuth();
+  const targetUserId = studentId || user?.id;
+
+  return useQuery({
+    queryKey: ['virtual-account-provisioning-job', targetUserId],
+    queryFn: async () => {
+      if (!targetUserId) throw new Error('User ID is required');
+
+      const { data, error } = await supabase
+        .from('virtual_account_provisioning_jobs')
+        .select('id, student_id, provider, status, attempts, request_id, last_error, created_at, updated_at')
+        .eq('student_id', targetUserId)
+        .eq('provider', 'wema')
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as VirtualAccountProvisioningJob | null;
+    },
+    enabled: !!targetUserId,
+    staleTime: 60 * 1000,
+    refetchInterval: (query) => {
+      const status = (query.state.data as VirtualAccountProvisioningJob | null | undefined)?.status;
+      return status === 'pending' || status === 'processing' ? 15000 : false;
+    },
   });
 }

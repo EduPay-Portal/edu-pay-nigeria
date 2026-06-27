@@ -1,0 +1,12 @@
+import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertAdminGuard, haveBase } from "../_shared/test-helpers.ts";
+
+Deno.test({
+  name: "provision-student-virtual-account rejects unauthorized callers",
+  ignore: !haveBase(),
+  async fn() {
+    await assertAdminGuard("provision-student-virtual-account", {
+      student_id: "00000000-0000-0000-0000-000000000000",
+    }, assertEquals);
+  },
+});

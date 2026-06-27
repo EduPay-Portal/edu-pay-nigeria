@@ -499,6 +499,48 @@ export type Database = {
         }
         Relationships: []
       }
+      virtual_account_provisioning_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          metadata: Json
+          processed_at: string | null
+          provider: string
+          request_id: string | null
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          metadata?: Json
+          processed_at?: string | null
+          provider?: string
+          request_id?: string | null
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          metadata?: Json
+          processed_at?: string | null
+          provider?: string
+          request_id?: string | null
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       virtual_accounts: {
         Row: {
           account_name: string

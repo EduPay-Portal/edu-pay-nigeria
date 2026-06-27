@@ -20,6 +20,21 @@ interface StagingRecord {
   created_at: string;
 }
 
+async function provisionStudentVirtualAccount(studentId: string, requestId: string) {
+  const res = await fetch(`${Deno.env.get("SUPABASE_URL")!}/functions/v1/provision-student-virtual-account`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!}`,
+      "x-request-id": requestId,
+    },
+    body: JSON.stringify({ student_id: studentId, provider: "wema" }),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`VA provisioning failed [${res.status}]: ${text}`);
+  return text;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -191,6 +206,14 @@ serve(async (req) => {
         if (existingStudent) {
           studentUserId = existingStudent.id;
           console.log(`  Found existing student: ${studentEmail}`);
+          await provisionStudentVirtualAccount(studentUserId, requestId).catch(async (error) => {
+            const reason = error instanceof Error ? error.message : 'Unknown provisioning error';
+            await writeAudit(supabaseAdmin, {
+              actorId, action: 'virtual_account.provision.failed',
+              entityType: 'virtual_account', requestId, ip,
+              metadata: { actor_role: 'admin', student_id: studentUserId, reason, source: 'bulk-create-students-existing' },
+            });
+          });
           
           // Mark staging as processed and skip to next record
           await supabaseAdmin
@@ -320,6 +343,15 @@ serve(async (req) => {
         }
 
         // Step 5: Mark staging record as processed
+        await provisionStudentVirtualAccount(studentUserId, requestId).catch(async (error) => {
+          const reason = error instanceof Error ? error.message : 'Unknown provisioning error';
+          await writeAudit(supabaseAdmin, {
+            actorId, action: 'virtual_account.provision.failed',
+            entityType: 'virtual_account', requestId, ip,
+            metadata: { actor_role: 'admin', student_id: studentUserId, reason, source: 'bulk-create-students' },
+          });
+        });
+
         await supabaseAdmin
           .from('students_import_staging')
           .update({

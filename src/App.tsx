@@ -12,6 +12,9 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import StudentDashboard from "./pages/dashboard/StudentDashboard";
+import StudentWalletPage from "./pages/dashboard/StudentWalletPage";
+import StudentTransactionsPage from "./pages/dashboard/StudentTransactionsPage";
+import ProfileEditPage from "./pages/dashboard/ProfileEditPage";
 import ParentDashboard from "./pages/dashboard/ParentDashboard";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import StudentsPage from "./pages/dashboard/admin/StudentsPage";
@@ -44,6 +47,8 @@ const App = () => (
               {/* Protected Dashboard Routes */}
               <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                 <Route path="student" element={<ProtectedRoute allowedRoles={['student']}><StudentDashboard /></ProtectedRoute>} />
+                <Route path="student/wallet" element={<ProtectedRoute allowedRoles={['student']}><StudentWalletPage /></ProtectedRoute>} />
+                <Route path="student/transactions" element={<ProtectedRoute allowedRoles={['student']}><StudentTransactionsPage /></ProtectedRoute>} />
                 <Route path="parent" element={<ProtectedRoute allowedRoles={['parent']}><ParentDashboard /></ProtectedRoute>} />
                 <Route path="admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
                 <Route path="admin/students" element={<ProtectedRoute allowedRoles={['admin']}><StudentsPage /></ProtectedRoute>} />
@@ -57,6 +62,10 @@ const App = () => (
                 <Route path="admin/settlements" element={<ProtectedRoute allowedRoles={['admin']}><SettlementsPage /></ProtectedRoute>} />
                 <Route path="admin/audit" element={<ProtectedRoute allowedRoles={['admin']}><AuditLogPage /></ProtectedRoute>} />
                 <Route path="admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><SettingsPage /></ProtectedRoute>} />
+              </Route>
+
+              <Route path="/profile/edit" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                <Route index element={<ProfileEditPage />} />
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
