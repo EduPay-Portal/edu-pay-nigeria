@@ -35,7 +35,7 @@ const CATEGORY_FILTERS: Record<string, string[]> = {
   all: [],
   user_creation: ['user.create'],
   bulk_import: ['bulk_create_students', 'bulk_create_virtual_accounts'],
-  virtual_account: ['virtual_account.create', 'dva.'],
+  virtual_account: ['virtual_account.', 'dva.'],
   reconciliation: ['reconciliation.'],
   payment: ['payment.'],
 };
