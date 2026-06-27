@@ -33,7 +33,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useEffect, useState } from "react";
 import logo from "@/assets/logo_asc.png";
-import heroPhoto from "@/assets/asci-students.jpg.asset.json";
+import heroPhoto from "@/assets/asci-students.jpg";
 
 const paymentSteps = [
   {
@@ -181,7 +181,7 @@ const Index = () => {
 
             <div className="relative w-full animate-fade-in">
               <img
-                src={heroPhoto.url}
+                src={heroPhoto}
                 alt="ASCI students gathered on the school field"
                 loading="eager"
                 className="w-full h-56 sm:h-72 md:h-80 lg:h-[440px] object-cover rounded-[5px] shadow-xl"
