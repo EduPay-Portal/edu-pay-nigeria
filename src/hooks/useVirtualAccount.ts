@@ -24,6 +24,9 @@ export interface VirtualAccountProvisioningJob {
   provider: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   attempts: number;
+  max_attempts: number;
+  next_retry_at: string | null;
+  last_attempt_at: string | null;
   request_id: string | null;
   last_error: string | null;
   created_at: string;
