@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useVirtualAccount } from '@/hooks/useVirtualAccount';
 import { useCreateVirtualAccount } from '@/hooks/useCreateVirtualAccount';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface VirtualAccountCardProps {
   studentId?: string;
