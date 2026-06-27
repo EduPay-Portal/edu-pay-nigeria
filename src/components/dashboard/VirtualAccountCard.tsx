@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useVirtualAccount } from '@/hooks/useVirtualAccount';
 import { useCreateVirtualAccount } from '@/hooks/useCreateVirtualAccount';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface VirtualAccountCardProps {
   studentId?: string;
@@ -15,6 +16,8 @@ interface VirtualAccountCardProps {
 
 export function VirtualAccountCard({ studentId, showCreateButton = true }: VirtualAccountCardProps) {
   const { user } = useAuth();
+  const { data: role } = useUserRole();
+  const isAdmin = role === 'admin';
   const { data: account, isLoading } = useVirtualAccount(studentId);
   const { createAccount, isCreating } = useCreateVirtualAccount();
   const [copied, setCopied] = useState(false);
@@ -67,14 +70,18 @@ export function VirtualAccountCard({ studentId, showCreateButton = true }: Virtu
           <CardDescription>No virtual account found</CardDescription>
         </CardHeader>
         <CardContent>
-          {showCreateButton && (
-            <Button 
-              onClick={handleCreateAccount} 
+          {showCreateButton && isAdmin ? (
+            <Button
+              onClick={handleCreateAccount}
               disabled={isCreating}
               className="w-full"
             >
               {isCreating ? 'Creating...' : 'Create Virtual Account'}
             </Button>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Your virtual account is being provisioned. Please check back shortly or contact an administrator if this persists.
+            </p>
           )}
         </CardContent>
       </Card>
