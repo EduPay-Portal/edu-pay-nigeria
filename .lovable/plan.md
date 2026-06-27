@@ -1,30 +1,29 @@
-## Create two demo accounts
+## Plan
 
-Create a student and a parent demo account directly in the backend using the existing `admin-create-user` edge function pattern (via a one-off SQL/auth admin call through the migration tool's secure path is not appropriate for auth.users — instead we'll insert via Supabase Auth admin API using a short script invocation).
+1. **Harden backend authorization**
+   - Update `create-virtual-account` so it performs its own role-aware authorization instead of blindly forwarding requests.
+   - Keep direct student/parent calls blocked, but return clear JSON with `request_id`, user role, and a friendly message instead of an unhandled 403.
+   - Keep the actual DVA creation path admin/service-role protected through `dva-create`.
 
-Since `auth.users` cannot be inserted via SQL migrations safely, use the existing `admin-create-user` edge function flow by calling it through a temporary admin-bootstrap path. The cleanest method already available in this codebase:
+2. **Add provisioning audit logs**
+   - Log every virtual account creation attempt: started, unauthorized, already exists, success, and failure.
+   - Include `actor_id`, resolved `actor_role`, `student_id`, `request_id`, provider, IP, and failure reason in `audit_logs.metadata`.
+   - Reuse the existing `audit_logs` table and `writeAudit` helper.
 
-### Approach
-Use `supabase.auth.admin.createUser` via a small one-off invocation of the existing `admin-create-user` edge function. The function requires an admin caller, so the actual creation will be done by running a direct script against the backend in build mode using the service role (server-side only, never exposed to client).
+3. **Automatic student provisioning workflow**
+   - Add a backend-only provisioning function for student registration events, using service-role credentials to call the admin-protected `dva-create` path.
+   - Add a database trigger/function on student role/profile creation to enqueue/call provisioning for new students.
+   - Make the workflow idempotent so duplicate registrations or retries do not create duplicate active virtual accounts.
 
-### Accounts to create
+4. **Friendly student/parent UI handling**
+   - Update virtual account UI so students/parents never see or trigger the admin-only “Create Virtual Account” action.
+   - Display a clear state such as “Your virtual account is being set up” with guidance to contact the bursary/admin if it persists.
+   - Update the virtual account creation hook to surface readable errors for admins instead of throwing generic runtime errors.
 
-| Email | Password | Role | First / Last name |
-|---|---|---|---|
-| ascistudent@gmail.com | (you choose — I'll ask) | student | Asci / Student |
-| asciparent@gmail.com  | (you choose — I'll ask) | parent  | Asci / Parent  |
+5. **Fix broken dashboard links shown in screenshots**
+   - Add routes or redirects for `/dashboard/student/wallet`, `/dashboard/student/transactions`, and `/profile/edit` so sidebar links no longer land on the 404 page.
+   - Keep them within the existing student dashboard/profile UI rather than creating unrelated new pages.
 
-### What happens automatically after creation
-- `handle_new_user` trigger inserts row in `public.profiles`
-- `handle_new_user` trigger inserts row in `public.user_roles` with the chosen role
-- `create_role_profile` trigger creates the matching `student_profiles` / `parent_profiles` row
-- `create_user_wallet` trigger creates an NGN wallet (balance 0)
-- For the student, the auto-VA trigger (migration 009) will request a Wema virtual account via `dva-create`
-
-### Out of scope
-- Linking the parent to the student (can be done after, via admin UI)
-- Funding the wallet
-- Setting custom admission number / class for the student (defaults: `ADM-XXXXXX`, class `Not Assigned`) — editable later in the admin Students page
-
-### Technical notes
-Execution in build mode will call the backend admin auth API server-side with email_confirm=true so both accounts can log in immediately without email verification.
+6. **Validate**
+   - Run targeted checks for edge function behavior and frontend routing.
+   - Verify non-admin users no longer get a blank screen, and admin virtual account creation still works with audit entries.
