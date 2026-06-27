@@ -79,11 +79,6 @@ export default function AuditLogPage() {
 
     if (requestIdFilter.trim()) query = query.eq('request_id', requestIdFilter.trim());
     if (studentIdFilter.trim()) query = query.or(`entity_id.eq.${studentIdFilter.trim()},metadata->>student_id.eq.${studentIdFilter.trim()}`);
-    let query = supabase
-      .from('audit_logs')
-      .select('id, actor_id, action, entity_type, entity_id, ip, request_id, metadata, before, after, created_at')
-      .order('created_at', { ascending: false })
-      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
 
     const prefixes = CATEGORY_FILTERS[category];
     if (prefixes.length === 1) query = query.like('action', `${prefixes[0]}%`);
