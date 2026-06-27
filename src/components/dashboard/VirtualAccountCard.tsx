@@ -129,10 +129,10 @@ export function VirtualAccountCard({ studentId, showCreateButton = true }: Virtu
 
   const target = studentId || user?.id;
   const auditHref = provisioningJob?.request_id
-    ? `/dashboard/admin/audit-logs?request_id=${encodeURIComponent(provisioningJob.request_id)}${target ? `&student_id=${encodeURIComponent(target)}` : ''}`
+    ? `/dashboard/admin/audit?request_id=${encodeURIComponent(provisioningJob.request_id)}${target ? `&student_id=${encodeURIComponent(target)}` : ''}`
     : target
-      ? `/dashboard/admin/audit-logs?student_id=${encodeURIComponent(target)}`
-      : '/dashboard/admin/audit-logs';
+      ? `/dashboard/admin/audit?student_id=${encodeURIComponent(target)}`
+      : '/dashboard/admin/audit';
 
   if (!account) {
     const job = provisioningJob;
