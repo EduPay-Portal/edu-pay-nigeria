@@ -16,6 +16,8 @@ import StudentWalletPage from "./pages/dashboard/StudentWalletPage";
 import StudentTransactionsPage from "./pages/dashboard/StudentTransactionsPage";
 import ProfileEditPage from "./pages/dashboard/ProfileEditPage";
 import ParentDashboard from "./pages/dashboard/ParentDashboard";
+import ParentChildrenPage from "./pages/dashboard/ParentChildrenPage";
+import ParentTransactionsPage from "./pages/dashboard/ParentTransactionsPage";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import StudentsPage from "./pages/dashboard/admin/StudentsPage";
 import ParentsPage from "./pages/dashboard/admin/ParentsPage";
@@ -50,6 +52,8 @@ const App = () => (
                 <Route path="student/wallet" element={<ProtectedRoute allowedRoles={['student']}><StudentWalletPage /></ProtectedRoute>} />
                 <Route path="student/transactions" element={<ProtectedRoute allowedRoles={['student']}><StudentTransactionsPage /></ProtectedRoute>} />
                 <Route path="parent" element={<ProtectedRoute allowedRoles={['parent']}><ParentDashboard /></ProtectedRoute>} />
+                <Route path="parent/children" element={<ProtectedRoute allowedRoles={['parent']}><ParentChildrenPage /></ProtectedRoute>} />
+                <Route path="parent/transactions" element={<ProtectedRoute allowedRoles={['parent']}><ParentTransactionsPage /></ProtectedRoute>} />
                 <Route path="admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
                 <Route path="admin/students" element={<ProtectedRoute allowedRoles={['admin']}><StudentsPage /></ProtectedRoute>} />
                 <Route path="admin/parents" element={<ProtectedRoute allowedRoles={['admin']}><ParentsPage /></ProtectedRoute>} />
