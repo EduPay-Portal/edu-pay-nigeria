@@ -164,7 +164,7 @@ serve(async (req) => {
       requestId,
       ip,
       after: saved,
-      metadata: { provider: dva.provider, student_id: body.student_id },
+      metadata: { actor_role: actorRole, provider: dva.provider, student_id: body.student_id },
     });
 
     return new Response(

@@ -17,6 +17,22 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+async function markJob(
+  supabase: ReturnType<typeof adminClient>,
+  studentId: string,
+  provider: "wema",
+  patch: Record<string, unknown>,
+) {
+  await supabase
+    .from("virtual_account_provisioning_jobs")
+    .upsert({
+      student_id: studentId,
+      provider,
+      ...patch,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "student_id,provider" });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -56,6 +72,14 @@ serve(async (req) => {
     metadata: { actor_role: actorRole, student_id: studentId, provider },
   });
 
+  await markJob(supabase, studentId, provider, {
+    status: "processing",
+    request_id: requestId,
+    attempts: 1,
+    last_error: null,
+    metadata: { actor_role: actorRole, source: "provision-student-virtual-account" },
+  });
+
   try {
     const { data: existing } = await supabase
       .from("virtual_accounts")
@@ -75,6 +99,13 @@ serve(async (req) => {
         ip,
         metadata: { actor_role: actorRole, student_id: studentId, provider },
       });
+      await markJob(supabase, studentId, provider, {
+        status: "completed",
+        request_id: requestId,
+        last_error: null,
+        processed_at: new Date().toISOString(),
+        metadata: { actor_role: actorRole, reason: "already_exists", account_id: existing.id },
+      });
       return json({ message: "Virtual account already exists", account: existing, request_id: requestId });
     }
 
@@ -93,6 +124,12 @@ serve(async (req) => {
         requestId,
         ip,
         metadata: { actor_role: actorRole, student_id: studentId, provider, reason },
+      });
+      await markJob(supabase, studentId, provider, {
+        status: "failed",
+        request_id: requestId,
+        last_error: reason,
+        metadata: { actor_role: actorRole, reason },
       });
       return json({
         error: "Student profile incomplete",
@@ -130,6 +167,12 @@ serve(async (req) => {
         ip,
         metadata: { actor_role: actorRole, student_id: studentId, provider, status: res.status, reason: text.slice(0, 1000) },
       });
+      await markJob(supabase, studentId, provider, {
+        status: "failed",
+        request_id: requestId,
+        last_error: text.slice(0, 1000),
+        metadata: { actor_role: actorRole, status: res.status, reason: text.slice(0, 1000) },
+      });
       return json({
         error: "Provisioning failed",
         message: "The virtual account could not be provisioned automatically. Please retry from the admin panel or contact support.",
@@ -148,6 +191,14 @@ serve(async (req) => {
       after: typeof result === "object" && result !== null ? result as Record<string, unknown> : { result },
     });
 
+    await markJob(supabase, studentId, provider, {
+      status: "completed",
+      request_id: requestId,
+      last_error: null,
+      processed_at: new Date().toISOString(),
+      metadata: { actor_role: actorRole },
+    });
+
     return json({ message: "Virtual account provisioned", result, request_id: requestId });
   } catch (e) {
     const reason = e instanceof Error ? e.message : "Unknown error";
@@ -158,6 +209,12 @@ serve(async (req) => {
       requestId,
       ip,
       metadata: { actor_role: actorRole, student_id: studentId, provider, reason },
+    });
+    await markJob(supabase, studentId, provider, {
+      status: "failed",
+      request_id: requestId,
+      last_error: reason,
+      metadata: { actor_role: actorRole, reason },
     });
     return json({ error: reason, request_id: requestId }, 500);
   }

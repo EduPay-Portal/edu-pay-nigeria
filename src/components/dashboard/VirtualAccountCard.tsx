@@ -4,7 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Copy, CreditCard, Check } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { useVirtualAccount } from '@/hooks/useVirtualAccount';
+import { useVirtualAccount, useVirtualAccountProvisioningJob } from '@/hooks/useVirtualAccount';
 import { useCreateVirtualAccount } from '@/hooks/useCreateVirtualAccount';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -20,6 +20,7 @@ export function VirtualAccountCard({ studentId, showCreateButton = true }: Virtu
   const { data: role } = useUserRole();
   const isAdmin = role === 'admin';
   const { data: account, isLoading, isError, error } = useVirtualAccount(studentId);
+  const { data: provisioningJob } = useVirtualAccountProvisioningJob(studentId);
   const { createAccount, isCreating, error: creationError } = useCreateVirtualAccount();
   const [copied, setCopied] = useState(false);
 
@@ -103,9 +104,15 @@ export function VirtualAccountCard({ studentId, showCreateButton = true }: Virtu
             </Button>
           ) : (
             <Alert>
-              <AlertTitle>Virtual account is being set up</AlertTitle>
+              <AlertTitle>
+                {provisioningJob?.status === 'failed'
+                  ? 'Virtual account needs administrator review'
+                  : 'Virtual account is being set up'}
+              </AlertTitle>
               <AlertDescription>
-                Your payment account is created automatically after registration. Please check back shortly; if it is still missing, contact the bursary or school administrator.
+                {provisioningJob?.status === 'failed'
+                  ? `Automatic setup failed${provisioningJob.request_id ? ` (Request ID: ${provisioningJob.request_id})` : ''}. Please contact the bursary or school administrator.`
+                  : 'Your payment account is created automatically after registration. Please check back shortly; if it is still missing, contact the bursary or school administrator.'}
               </AlertDescription>
             </Alert>
           )}
