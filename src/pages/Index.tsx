@@ -1,11 +1,79 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, Shield, Zap, TrendingUp, Wallet, BarChart3, Bell, CheckCircle2, Users, Clock, HeadphonesIcon, Lock, Sparkles, Star } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  ArrowRight,
+  Shield,
+  Zap,
+  TrendingUp,
+  Wallet,
+  BarChart3,
+  Bell,
+  CheckCircle2,
+  Users,
+  Clock,
+  HeadphonesIcon,
+  Lock,
+  Sparkles,
+  Star,
+  Calendar,
+  CreditCard,
+  ListChecks,
+  Receipt,
+  ShieldCheck,
+  Workflow,
+} from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import logo from "@/assets/logo_asc.png";
+
+const paymentSteps = [
+  {
+    icon: Wallet,
+    title: "Virtual Account Assignment",
+    description:
+      "Every student is automatically issued a unique Wema Bank virtual account (NUBAN) linked to their digital wallet.",
+  },
+  {
+    icon: CreditCard,
+    title: "Flexible Payment Methods",
+    description:
+      "Parents can pay via direct bank transfer to the student's virtual account or top up instantly with a debit card.",
+  },
+  {
+    icon: Zap,
+    title: "Automatic Wallet Credit",
+    description:
+      "Bank transfers are auto-reconciled and reflected in the student's wallet in real time — no manual confirmation needed.",
+  },
+  {
+    icon: ListChecks,
+    title: "Fee Settlement & Tracking",
+    description:
+      "Live balance updates, detailed payment history, SMS & email notifications, and a full audit trail per student.",
+  },
+  {
+    icon: Receipt,
+    title: "Instant Payment Confirmation",
+    description:
+      "Digital receipts are generated immediately and the school admin dashboard is updated at the same moment.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Bank-Grade Security",
+    description:
+      "All payments are PCI-DSS compliant with end-to-end encryption — parents never share card details with the school.",
+  },
+];
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
