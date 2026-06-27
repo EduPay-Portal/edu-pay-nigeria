@@ -83,7 +83,7 @@ export function useVirtualAccountProvisioningJob(studentId?: string) {
     enabled: !!targetUserId,
     staleTime: 60 * 1000,
     refetchInterval: (query) => {
-      const status = query.state.data?.status;
+      const status = (query.state.data as VirtualAccountProvisioningJob | null | undefined)?.status;
       return status === 'pending' || status === 'processing' ? 15000 : false;
     },
   });
