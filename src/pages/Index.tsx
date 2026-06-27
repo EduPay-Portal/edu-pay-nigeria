@@ -1,16 +1,85 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, Shield, Zap, TrendingUp, Wallet, BarChart3, Bell, CheckCircle2, Users, Clock, HeadphonesIcon, Lock, Sparkles, Star } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  ArrowRight,
+  Shield,
+  Zap,
+  TrendingUp,
+  Wallet,
+  BarChart3,
+  Bell,
+  CheckCircle2,
+  Users,
+  Clock,
+  HeadphonesIcon,
+  Lock,
+  Sparkles,
+  Star,
+  Calendar,
+  CreditCard,
+  ListChecks,
+  Receipt,
+  ShieldCheck,
+  Workflow,
+} from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import logo from "@/assets/logo_asc.png";
+
+const paymentSteps = [
+  {
+    icon: Wallet,
+    title: "Virtual Account Assignment",
+    description:
+      "Every student is automatically issued a unique Wema Bank virtual account (NUBAN) linked to their digital wallet.",
+  },
+  {
+    icon: CreditCard,
+    title: "Flexible Payment Methods",
+    description:
+      "Parents can pay via direct bank transfer to the student's virtual account or top up instantly with a debit card.",
+  },
+  {
+    icon: Zap,
+    title: "Automatic Wallet Credit",
+    description:
+      "Bank transfers are auto-reconciled and reflected in the student's wallet in real time — no manual confirmation needed.",
+  },
+  {
+    icon: ListChecks,
+    title: "Fee Settlement & Tracking",
+    description:
+      "Live balance updates, detailed payment history, SMS & email notifications, and a full audit trail per student.",
+  },
+  {
+    icon: Receipt,
+    title: "Instant Payment Confirmation",
+    description:
+      "Digital receipts are generated immediately and the school admin dashboard is updated at the same moment.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Bank-Grade Security",
+    description:
+      "All payments are PCI-DSS compliant with end-to-end encryption — parents never share card details with the school.",
+  },
+];
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
   const { data: role, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !roleLoading && user && role) {
@@ -56,116 +125,219 @@ const Index = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 lg:px-8 py-12 md:py-16">
-        <div className="grid lg:grid-cols-2 gap-8 items-center">
-          {/* Left Content */}
-          <div className="space-y-8 animate-fade-in">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium text-primary">Welcome to the ASCI Payment Portal</span>
-            </div>
-            
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-              Manage school fees{" "}
-              <span className="text-primary">simply</span> and{" "}
-              <span className="text-primary">securely</span>
-            </h1>
-            
-            <p className="text-lg text-muted-foreground max-w-lg">
-              Transform your school's financial management with Nigeria's most trusted digital payment ecosystem. Say goodbye to cash handling risks.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="bg-primary hover:bg-primary/90 shadow-lg" asChild>
-                <Link to="/auth">
-                  Sign In <ArrowRight className="ml-2 w-5 h-5" />
-                </Link>
-              </Button>
+      <section className="relative overflow-hidden bg-muted/30">
+        {/* Diagonal primary zone (desktop) */}
+        <div
+          aria-hidden
+          className="hidden md:block absolute inset-0 bg-primary"
+          style={{ clipPath: "polygon(55% 0, 100% 0, 100% 100%, 20% 100%)" }}
+        />
+        {/* Mobile bottom band */}
+        <div
+          aria-hidden
+          className="md:hidden absolute bottom-0 inset-x-0 h-40 bg-primary"
+        />
+        {/* Faded crest watermark */}
+        <img
+          src={logo}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute -left-24 top-10 w-[520px] max-w-none opacity-[0.06] select-none"
+        />
+
+        <div className="relative container mx-auto px-4 lg:px-8 pt-12 md:pt-20 pb-32 md:pb-40">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            {/* Left Content */}
+            <div className="space-y-7 animate-fade-in">
+              <span className="block text-xs md:text-sm font-semibold uppercase tracking-[0.2em] text-primary">
+                Welcome to the ASCI Payment Portal
+              </span>
+
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight text-foreground">
+                Pay your school fees{" "}
+                <span className="text-accent">online</span>
+              </h1>
+
+              <p className="text-lg text-muted-foreground max-w-lg">
+                Nigeria's most trusted digital payment ecosystem for schools — secure virtual accounts, instant wallet credits, and full transparency for every parent.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-5 pt-2">
+                <Button
+                  size="lg"
+                  className="bg-primary hover:bg-primary/90 rounded-full px-8 shadow-lg"
+                  asChild
+                >
+                  <Link to="/auth">
+                    Sign In <ArrowRight className="ml-2 w-5 h-5" />
+                  </Link>
+                </Button>
+
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="rounded-full border-primary text-primary hover:bg-primary hover:text-primary-foreground px-7"
+                  onClick={() => setPaymentOpen(true)}
+                >
+                  <Workflow className="mr-2 w-5 h-5" />
+                  Payment Process
+                </Button>
+
+                <a
+                  href="#features"
+                  className="text-sm font-semibold text-foreground hover:text-primary underline-offset-4 hover:underline transition-colors"
+                >
+                  Learn more
+                </a>
+              </div>
             </div>
 
-            {/* Stats Row */}
-            <div className="grid grid-cols-2 gap-6 pt-6">
-              <div className="space-y-1">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-primary">410+</span>
-                  <TrendingUp className="w-5 h-5 text-success" />
-                </div>
-                <p className="text-sm text-muted-foreground">Active Students</p>
+            {/* Right Collage */}
+            <div className="relative h-[420px] md:h-[480px] animate-fade-in" style={{ animationDelay: "0.15s" }}>
+              {/* Floating crest */}
+              <div className="absolute left-0 top-6 z-20 w-28 h-28 md:w-36 md:h-36 rounded-2xl bg-card border shadow-2xl flex items-center justify-center p-3">
+                <img src={logo} alt="ASCI crest" className="w-full h-full object-contain" />
               </div>
-              <div className="space-y-1">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold text-primary">₦50M+</span>
-                  <TrendingUp className="w-5 h-5 text-success" />
+
+              {/* Card A — wallet (top right) */}
+              <div
+                className="absolute right-0 top-0 w-[78%] md:w-[70%] rounded-3xl bg-gradient-to-br from-primary via-primary to-primary/80 shadow-2xl p-6 animate-fade-in"
+                style={{ animationDelay: "0.3s" }}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-primary-foreground/80 text-xs uppercase tracking-wider">Total Balance</p>
+                    <h3 className="text-2xl md:text-3xl font-bold text-primary-foreground mt-1">₦5,203,450</h3>
+                  </div>
+                  <div className="w-11 h-11 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                    <Wallet className="w-5 h-5 text-primary-foreground" />
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">Transactions Processed</p>
+                <div className="mt-5 bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-primary-foreground font-semibold text-sm">School Fees · Term 2</p>
+                      <p className="text-primary-foreground/60 text-xs">Today, 2:30 PM</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-success" />
+                      <p className="text-primary-foreground font-bold">₦45,000</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card B — stats (bottom left, overlapping) */}
+              <div
+                className="absolute left-4 md:left-8 bottom-0 w-[70%] md:w-[62%] rounded-3xl bg-card border shadow-2xl p-5 animate-fade-in"
+                style={{ animationDelay: "0.45s" }}
+              >
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
+                      <Users className="w-5 h-5 text-success" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Active Parents</p>
+                      <p className="text-lg font-bold">205+</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <BarChart3 className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Collection Rate</p>
+                      <p className="text-lg font-bold">95%</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Right Mockup */}
-          <div className="relative animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            {/* Decorative Elements */}
-            <div className="absolute -top-4 -right-4 w-72 h-72 bg-primary/5 rounded-full blur-3xl"></div>
-            <div className="absolute -bottom-8 -left-8 w-64 h-64 bg-secondary/5 rounded-full blur-3xl"></div>
-            
-            {/* Main Wallet Card */}
-            <div className="relative bg-gradient-to-br from-primary via-primary to-primary/80 rounded-3xl p-8 shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-300">
-              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLW9wYWNpdHk9IjAuMSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-30 rounded-3xl"></div>
-              
-              <div className="relative space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-primary-foreground/80 text-sm">Total Balance</p>
-                    <h3 className="text-3xl font-bold text-primary-foreground mt-1">₦5,203,450</h3>
-                  </div>
-                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                    <Wallet className="w-6 h-6 text-primary-foreground" />
-                  </div>
-                </div>
-                
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-primary-foreground/80 text-sm">Recent Payment</span>
-                    <CheckCircle2 className="w-4 h-4 text-success" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-primary-foreground font-semibold">School Fees - Term 2</p>
-                      <p className="text-primary-foreground/60 text-xs">Today, 2:30 PM</p>
-                    </div>
-                    <p className="text-primary-foreground font-bold">₦45,000</p>
-                  </div>
-                </div>
+          {/* Info strip */}
+          <div className="relative mt-16 md:mt-24 rounded-2xl bg-primary text-primary-foreground shadow-xl px-6 md:px-10 py-7 md:py-8 grid md:grid-cols-2 gap-8 md:gap-6">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                <Calendar className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-bold text-lg">410+ Active Students</p>
+                <p className="text-sm text-primary-foreground/80">
+                  Trusted by hundreds of families across Nigeria for daily fee payments.
+                </p>
+                <a href="#features" className="inline-block text-sm font-semibold underline underline-offset-4 text-accent">
+                  Learn more
+                </a>
               </div>
             </div>
-
-            {/* Floating Stats Cards */}
-            <div className="absolute -bottom-6 -left-6 bg-card border shadow-xl rounded-2xl p-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-success" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Active Parents</p>
-                  <p className="text-xl font-bold">205+</p>
-                </div>
+            <div className="flex items-start gap-4 md:border-l md:border-primary-foreground/20 md:pl-8">
+              <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5 text-primary-foreground" />
               </div>
-            </div>
-
-            <div className="absolute -top-6 -right-6 bg-card border shadow-xl rounded-2xl p-4 animate-fade-in" style={{ animationDelay: '0.6s' }}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <BarChart3 className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Collection Rate</p>
-                  <p className="text-xl font-bold">95%</p>
-                </div>
+              <div className="space-y-1">
+                <p className="font-bold text-lg">₦50M+ Transactions Processed</p>
+                <p className="text-sm text-primary-foreground/80">
+                  Real-time reconciliation with bank-grade security and full audit trails.
+                </p>
+                <a href="#why-choose" className="inline-block text-sm font-semibold underline underline-offset-4 text-accent">
+                  Learn more
+                </a>
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Payment Process Modal */}
+      <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">How Parents & Students Pay</DialogTitle>
+            <DialogDescription>
+              A quick walkthrough of how school fees flow from parents to the school — securely and in real time.
+            </DialogDescription>
+          </DialogHeader>
+
+          <ol className="mt-4 space-y-4">
+            {paymentSteps.map((step, idx) => {
+              const Icon = step.icon;
+              return (
+                <li
+                  key={step.title}
+                  className="flex gap-4 p-4 rounded-xl border bg-muted/30"
+                >
+                  <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-semibold">
+                      <span className="text-primary mr-2">{String(idx + 1).padStart(2, "0")}.</span>
+                      {step.title}
+                    </p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {step.description}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+
+          <DialogFooter className="mt-4 gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setPaymentOpen(false)}>
+              Close
+            </Button>
+            <Button className="bg-primary hover:bg-primary/90" asChild>
+              <Link to="/auth">
+                Sign In <ArrowRight className="ml-2 w-4 h-4" />
+              </Link>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Features Section - Numbered Grid */}
       <section id="features" className="bg-muted/30 py-12 md:py-16">
