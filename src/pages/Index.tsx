@@ -79,6 +79,7 @@ const Index = () => {
   const { user, loading: authLoading } = useAuth();
   const { data: role, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !roleLoading && user && role) {
