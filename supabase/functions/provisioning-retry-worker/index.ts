@@ -14,9 +14,18 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const supabase = adminClient();
-  const guard = await requireAdminOrServiceRole(req, supabase);
-  if (guard instanceof Response) return guard;
-  const { actorId, actorRole } = guard;
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  const presentedSecret = req.headers.get("x-cron-secret");
+  const isCron = !!cronSecret && presentedSecret === cronSecret;
+
+  let actorId: string | null = null;
+  let actorRole: string | null = "cron";
+  if (!isCron) {
+    const guard = await requireAdminOrServiceRole(req, supabase);
+    if (guard instanceof Response) return guard;
+    actorId = guard.actorId;
+    actorRole = guard.actorRole ?? null;
+  }
   const requestId = getRequestId(req);
   const ip = getRequestIp(req);
 
