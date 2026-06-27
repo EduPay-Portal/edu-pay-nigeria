@@ -53,6 +53,10 @@ function categoryLabel(action: string): { label: string; tone: string } {
 }
 
 export default function AuditLogPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialRequestId = searchParams.get('request_id') ?? '';
+  const initialStudentId = searchParams.get('student_id') ?? '';
+
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [actorMap, setActorMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -60,10 +64,21 @@ export default function AuditLogPage() {
   const [hasMore, setHasMore] = useState(false);
   const [category, setCategory] = useState('all');
   const [search, setSearch] = useState('');
+  const [requestIdFilter, setRequestIdFilter] = useState(initialRequestId);
+  const [studentIdFilter, setStudentIdFilter] = useState(initialStudentId);
+  const [reconciling, setReconciling] = useState(false);
   const [selected, setSelected] = useState<AuditRow | null>(null);
 
   const load = async () => {
     setLoading(true);
+    let query = supabase
+      .from('audit_logs')
+      .select('id, actor_id, action, entity_type, entity_id, ip, request_id, metadata, before, after, created_at')
+      .order('created_at', { ascending: false })
+      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+
+    if (requestIdFilter.trim()) query = query.eq('request_id', requestIdFilter.trim());
+    if (studentIdFilter.trim()) query = query.or(`entity_id.eq.${studentIdFilter.trim()},metadata->>student_id.eq.${studentIdFilter.trim()}`);
     let query = supabase
       .from('audit_logs')
       .select('id, actor_id, action, entity_type, entity_id, ip, request_id, metadata, before, after, created_at')
