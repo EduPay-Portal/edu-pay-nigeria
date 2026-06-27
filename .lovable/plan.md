@@ -1,36 +1,41 @@
-## Objective
-Strip the hero section down to a clean, professional headline + CTA layout.
+## Hero: add right-column photo
 
-## Changes
+### Asset
+- Register the uploaded image (`user-uploads://imgi_2_carousel-1.jpg`) as a Lovable Asset:
+  - `lovable-assets create --file /mnt/user-uploads/imgi_2_carousel-1.jpg --filename asci-students.jpg > src/assets/asci-students.jpg.asset.json`
+- Import the pointer in `src/pages/Index.tsx`:
+  - `import heroPhoto from "@/assets/asci-students.jpg.asset.json";`
 
-### `src/pages/Index.tsx` — Hero simplification
+### Layout change (`src/pages/Index.tsx`, hero section ~125–180)
 
-1. **Remove diagonal primary zone & mobile bottom band**
-   - Delete the `clipPath` polygon div and the mobile `h-40` bottom band.
+Convert the current single-column hero into a responsive 2-column grid inside the existing `container`:
 
-2. **Remove right collage column**
-   - Delete the entire `<div className="relative h-[420px]...">` block containing:
-     - Floating crest card
-     - Wallet balance card (₦5.2M / ₦45,000)
-     - Stats card (Active Parents / Collection Rate)
-   - Keep only the left content column.
+```text
+grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center
+```
 
-3. **Remove info strip**
-   - Delete the entire `bg-primary text-primary-foreground` rounded-2xl block with:
-     - "410+ Active Students"
-     - "₦50M+ Transactions Processed"
+- **Left column** — keep the existing eyebrow, headline, paragraph, and CTA row exactly as-is (Sign In, Payment Process, Learn more). Drop `max-w-2xl` since the column constrains width.
+- **Right column** — new image block:
+  ```tsx
+  <div className="relative w-full animate-fade-in">
+    <img
+      src={heroPhoto.url}
+      alt="ASCI students gathered on the school field"
+      loading="eager"
+      className="w-full h-56 sm:h-72 md:h-80 lg:h-[420px] object-cover rounded-[5px] shadow-xl"
+    />
+  </div>
+  ```
 
-4. **Reduce hero height**
-   - Tighten vertical padding: `pt-8 md:pt-12 pb-16 md:pb-20` (or similar moderate spacing).
-   - Remove `overflow-hidden` if no longer needed.
-   - Keep the background as `bg-muted/30` (no diagonal shapes).
+### Responsive behavior
+- **Mobile (<1024px)**: photo stacks **below** the text, full width, height `h-56` (sm) → `h-72`. Border radius 5px.
+- **Tablet (md)**: same stacked layout, `h-80`.
+- **Desktop (lg+)**: 2-column side-by-side, image `h-[420px]`, `object-cover` keeps it cropped cleanly.
+- Faded crest watermark stays untouched.
 
-5. **Left content cleanup**
-   - Keep eyebrow, headline, sub-headline, CTA row (Sign In, Payment Process, Learn more).
-   - Keep faded watermark logo behind the text.
+### What stays
+- Header, modal, payment steps, all sections below hero, all colors/tokens, animations.
+- No new dependencies.
 
-## What stays
-- Header navigation
-- Payment Process modal + button
-- All sections below the hero (features, why-choose, testimonials, footer)
-- All existing colors and tokens
+### Preview
+After implementation, the preview updates live so you can confirm the look on desktop/tablet/mobile via the device switcher before considering it final.
