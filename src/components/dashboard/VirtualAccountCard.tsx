@@ -16,6 +16,8 @@ interface VirtualAccountCardProps {
 
 export function VirtualAccountCard({ studentId, showCreateButton = true }: VirtualAccountCardProps) {
   const { user } = useAuth();
+  const { data: role } = useUserRole();
+  const isAdmin = role === 'admin';
   const { data: account, isLoading } = useVirtualAccount(studentId);
   const { createAccount, isCreating } = useCreateVirtualAccount();
   const [copied, setCopied] = useState(false);
