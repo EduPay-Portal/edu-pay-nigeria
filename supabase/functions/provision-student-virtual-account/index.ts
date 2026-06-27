@@ -1,4 +1,4 @@
-// Backend-only student VA provisioning workflow.
+// Backend-only student VA provisioning workflow with retry-with-backoff.
 // Admin callers and service-role processes can invoke this. It provisions
 // through `dva-create` using service-role credentials so students/parents never
 // need direct creation privileges.
@@ -9,6 +9,7 @@ import { writeAudit } from "../_shared/audit.ts";
 interface Body {
   student_id?: string;
   provider?: "wema";
+  force?: boolean;
 }
 
 const json = (body: unknown, status = 200) =>
@@ -16,6 +17,18 @@ const json = (body: unknown, status = 200) =>
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+
+// Exponential backoff schedule (ms): 30s, 2m, 8m, 30m, 2h
+const BACKOFF_MS = [30_000, 120_000, 480_000, 1_800_000, 7_200_000];
+
+function nextRetryAt(attempt: number): string {
+  const idx = Math.min(attempt, BACKOFF_MS.length - 1);
+  return new Date(Date.now() + BACKOFF_MS[idx]).toISOString();
+}
+
+function isTransientStatus(status: number): boolean {
+  return status === 0 || status === 408 || status === 425 || status === 429 || (status >= 500 && status <= 599);
+}
 
 async function markJob(
   supabase: ReturnType<typeof adminClient>,
@@ -50,6 +63,7 @@ serve(async (req) => {
 
   const provider = body.provider ?? "wema";
   const studentId = body.student_id;
+  const force = body.force === true;
 
   if (!studentId) {
     await writeAudit(supabase, {
@@ -63,21 +77,35 @@ serve(async (req) => {
     return json({ error: "Missing student_id", request_id: requestId }, 400);
   }
 
+  // Load existing job to compute attempt count
+  const { data: existingJob } = await supabase
+    .from("virtual_account_provisioning_jobs")
+    .select("attempts, max_attempts, status")
+    .eq("student_id", studentId)
+    .eq("provider", provider)
+    .maybeSingle();
+
+  const previousAttempts = force ? 0 : (existingJob?.attempts ?? 0);
+  const maxAttempts = existingJob?.max_attempts ?? 5;
+  const currentAttempt = previousAttempts + 1;
+
   await writeAudit(supabase, {
     actorId,
-    action: "virtual_account.provision.started",
+    action: force ? "virtual_account.manual_retry" : "virtual_account.provision.started",
     entityType: "virtual_account",
     requestId,
     ip,
-    metadata: { actor_role: actorRole, student_id: studentId, provider },
+    metadata: { actor_role: actorRole, student_id: studentId, provider, attempt: currentAttempt, force },
   });
 
   await markJob(supabase, studentId, provider, {
     status: "processing",
     request_id: requestId,
-    attempts: 1,
+    attempts: currentAttempt,
+    last_attempt_at: new Date().toISOString(),
+    next_retry_at: null,
     last_error: null,
-    metadata: { actor_role: actorRole, source: "provision-student-virtual-account" },
+    metadata: { actor_role: actorRole, source: force ? "manual_retry" : "provision-student-virtual-account" },
   });
 
   try {
@@ -103,6 +131,7 @@ serve(async (req) => {
         status: "completed",
         request_id: requestId,
         last_error: null,
+        next_retry_at: null,
         processed_at: new Date().toISOString(),
         metadata: { actor_role: actorRole, reason: "already_exists", account_id: existing.id },
       });
@@ -117,19 +146,21 @@ serve(async (req) => {
 
     if (profileError || !profile?.email || !profile?.first_name || !profile?.last_name) {
       const reason = profileError?.message ?? "Missing required student profile data";
+      // Terminal failure — no retry.
       await writeAudit(supabase, {
         actorId,
         action: "virtual_account.provision.failed",
         entityType: "virtual_account",
         requestId,
         ip,
-        metadata: { actor_role: actorRole, student_id: studentId, provider, reason },
+        metadata: { actor_role: actorRole, student_id: studentId, provider, reason, terminal: true },
       });
       await markJob(supabase, studentId, provider, {
         status: "failed",
         request_id: requestId,
         last_error: reason,
-        metadata: { actor_role: actorRole, reason },
+        next_retry_at: null,
+        metadata: { actor_role: actorRole, reason, terminal: true },
       });
       return json({
         error: "Student profile incomplete",
@@ -138,47 +169,75 @@ serve(async (req) => {
       }, 422);
     }
 
-    const res = await fetch(`${Deno.env.get("SUPABASE_URL")!}/functions/v1/dva-create`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!}`,
-        "x-request-id": requestId,
-      },
-      body: JSON.stringify({
-        student_id: studentId,
-        first_name: profile.first_name,
-        last_name: profile.last_name,
-        email: profile.email,
-        provider,
-      }),
-    });
+    let res: Response;
+    let networkError: Error | null = null;
+    try {
+      res = await fetch(`${Deno.env.get("SUPABASE_URL")!}/functions/v1/dva-create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!}`,
+          "x-request-id": requestId,
+        },
+        body: JSON.stringify({
+          student_id: studentId,
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          email: profile.email,
+          provider,
+        }),
+      });
+    } catch (e) {
+      networkError = e instanceof Error ? e : new Error(String(e));
+      res = new Response(networkError.message, { status: 0 });
+    }
 
-    const text = await res.text();
+    const text = networkError ? networkError.message : await res.text();
     let result: unknown = text;
     try { result = JSON.parse(text); } catch { /* keep text */ }
 
     if (!res.ok) {
+      const status = res.status;
+      const transient = isTransientStatus(status);
+      const canRetry = transient && currentAttempt < maxAttempts;
+      const retryAt = canRetry ? nextRetryAt(currentAttempt) : null;
+
       await writeAudit(supabase, {
         actorId,
-        action: "virtual_account.provision.failed",
+        action: canRetry ? "virtual_account.provision.retry_scheduled" : "virtual_account.provision.failed",
         entityType: "virtual_account",
         requestId,
         ip,
-        metadata: { actor_role: actorRole, student_id: studentId, provider, status: res.status, reason: text.slice(0, 1000) },
+        metadata: {
+          actor_role: actorRole,
+          student_id: studentId,
+          provider,
+          status,
+          attempt: currentAttempt,
+          max_attempts: maxAttempts,
+          next_retry_at: retryAt,
+          reason: text.slice(0, 1000),
+          transient,
+        },
       });
       await markJob(supabase, studentId, provider, {
-        status: "failed",
+        status: canRetry ? "pending" : "failed",
         request_id: requestId,
         last_error: text.slice(0, 1000),
-        metadata: { actor_role: actorRole, status: res.status, reason: text.slice(0, 1000) },
+        next_retry_at: retryAt,
+        metadata: { actor_role: actorRole, status, transient, attempt: currentAttempt, max_attempts: maxAttempts },
       });
       return json({
-        error: "Provisioning failed",
-        message: "The virtual account could not be provisioned automatically. Please retry from the admin panel or contact support.",
+        error: canRetry ? "Provisioning will retry" : "Provisioning failed",
+        message: canRetry
+          ? `Temporary provisioning issue. Retry ${currentAttempt} of ${maxAttempts} scheduled.`
+          : "The virtual account could not be provisioned. Please retry from the admin panel or contact support.",
+        attempt: currentAttempt,
+        max_attempts: maxAttempts,
+        next_retry_at: retryAt,
         details: result,
         request_id: requestId,
-      }, res.status);
+      }, canRetry ? 202 : status);
     }
 
     await writeAudit(supabase, {
@@ -187,7 +246,7 @@ serve(async (req) => {
       entityType: "virtual_account",
       requestId,
       ip,
-      metadata: { actor_role: actorRole, student_id: studentId, provider },
+      metadata: { actor_role: actorRole, student_id: studentId, provider, attempt: currentAttempt },
       after: typeof result === "object" && result !== null ? result as Record<string, unknown> : { result },
     });
 
@@ -195,27 +254,31 @@ serve(async (req) => {
       status: "completed",
       request_id: requestId,
       last_error: null,
+      next_retry_at: null,
       processed_at: new Date().toISOString(),
-      metadata: { actor_role: actorRole },
+      metadata: { actor_role: actorRole, attempt: currentAttempt },
     });
 
     return json({ message: "Virtual account provisioned", result, request_id: requestId });
   } catch (e) {
     const reason = e instanceof Error ? e.message : "Unknown error";
+    const canRetry = currentAttempt < maxAttempts;
+    const retryAt = canRetry ? nextRetryAt(currentAttempt) : null;
     await writeAudit(supabase, {
       actorId,
-      action: "virtual_account.provision.failed",
+      action: canRetry ? "virtual_account.provision.retry_scheduled" : "virtual_account.provision.failed",
       entityType: "virtual_account",
       requestId,
       ip,
-      metadata: { actor_role: actorRole, student_id: studentId, provider, reason },
+      metadata: { actor_role: actorRole, student_id: studentId, provider, reason, attempt: currentAttempt, next_retry_at: retryAt },
     });
     await markJob(supabase, studentId, provider, {
-      status: "failed",
+      status: canRetry ? "pending" : "failed",
       request_id: requestId,
       last_error: reason,
-      metadata: { actor_role: actorRole, reason },
+      next_retry_at: retryAt,
+      metadata: { actor_role: actorRole, reason, attempt: currentAttempt },
     });
-    return json({ error: reason, request_id: requestId }, 500);
+    return json({ error: reason, request_id: requestId, next_retry_at: retryAt }, canRetry ? 202 : 500);
   }
 });

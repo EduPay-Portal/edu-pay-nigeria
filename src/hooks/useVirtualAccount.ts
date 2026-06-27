@@ -24,6 +24,9 @@ export interface VirtualAccountProvisioningJob {
   provider: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   attempts: number;
+  max_attempts: number;
+  next_retry_at: string | null;
+  last_attempt_at: string | null;
   request_id: string | null;
   last_error: string | null;
   created_at: string;
@@ -72,7 +75,7 @@ export function useVirtualAccountProvisioningJob(studentId?: string) {
 
       const { data, error } = await supabase
         .from('virtual_account_provisioning_jobs')
-        .select('id, student_id, provider, status, attempts, request_id, last_error, created_at, updated_at')
+        .select('id, student_id, provider, status, attempts, max_attempts, next_retry_at, last_attempt_at, request_id, last_error, created_at, updated_at')
         .eq('student_id', targetUserId)
         .eq('provider', 'wema')
         .maybeSingle();

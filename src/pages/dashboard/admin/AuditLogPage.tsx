@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -51,6 +53,10 @@ function categoryLabel(action: string): { label: string; tone: string } {
 }
 
 export default function AuditLogPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialRequestId = searchParams.get('request_id') ?? '';
+  const initialStudentId = searchParams.get('student_id') ?? '';
+
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [actorMap, setActorMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -58,6 +64,9 @@ export default function AuditLogPage() {
   const [hasMore, setHasMore] = useState(false);
   const [category, setCategory] = useState('all');
   const [search, setSearch] = useState('');
+  const [requestIdFilter, setRequestIdFilter] = useState(initialRequestId);
+  const [studentIdFilter, setStudentIdFilter] = useState(initialStudentId);
+  const [reconciling, setReconciling] = useState(false);
   const [selected, setSelected] = useState<AuditRow | null>(null);
 
   const load = async () => {
@@ -67,6 +76,9 @@ export default function AuditLogPage() {
       .select('id, actor_id, action, entity_type, entity_id, ip, request_id, metadata, before, after, created_at')
       .order('created_at', { ascending: false })
       .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+
+    if (requestIdFilter.trim()) query = query.eq('request_id', requestIdFilter.trim());
+    if (studentIdFilter.trim()) query = query.or(`entity_id.eq.${studentIdFilter.trim()},metadata->>student_id.eq.${studentIdFilter.trim()}`);
 
     const prefixes = CATEGORY_FILTERS[category];
     if (prefixes.length === 1) query = query.like('action', `${prefixes[0]}%`);
@@ -96,9 +108,32 @@ export default function AuditLogPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, category]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, category, requestIdFilter, studentIdFilter]);
 
   const filtered = useMemo(() => rows, [rows]);
+
+  const runReconciliation = async () => {
+    setReconciling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('reconcile-missing-virtual-accounts', { body: {} });
+      if (error) throw error;
+      toast.success('Reconciliation complete', {
+        description: `Scanned ${data?.scanned ?? 0}, enqueued ${data?.enqueued ?? 0}, skipped ${data?.skipped ?? 0}.`,
+      });
+      load();
+    } catch (e) {
+      toast.error('Reconciliation failed', { description: e instanceof Error ? e.message : 'Try again.' });
+    } finally {
+      setReconciling(false);
+    }
+  };
+
+  const clearFilters = () => {
+    setRequestIdFilter('');
+    setStudentIdFilter('');
+    setSearchParams({});
+    setPage(0);
+  };
 
   return (
     <div className="space-y-6">
@@ -109,10 +144,25 @@ export default function AuditLogPage() {
           </h1>
           <p className="text-muted-foreground">Sensitive admin & payment actions</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => { setPage(0); load(); }}>
-          <RefreshCw className="h-4 w-4 mr-2" /> Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={runReconciliation} disabled={reconciling}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${reconciling ? 'animate-spin' : ''}`} />
+            {reconciling ? 'Reconciling…' : 'Run VA reconciliation'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => { setPage(0); load(); }}>
+            <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+          </Button>
+        </div>
       </div>
+
+      {(requestIdFilter || studentIdFilter) && (
+        <div className="flex items-center gap-2 flex-wrap text-sm">
+          <span className="text-muted-foreground">Active filters:</span>
+          {requestIdFilter && <Badge variant="secondary" className="font-mono">request_id: {requestIdFilter.slice(0, 12)}…</Badge>}
+          {studentIdFilter && <Badge variant="secondary" className="font-mono">student_id: {studentIdFilter.slice(0, 12)}…</Badge>}
+          <Button variant="ghost" size="sm" onClick={clearFilters}>Clear</Button>
+        </div>
+      )}
 
       <Card>
         <CardHeader>

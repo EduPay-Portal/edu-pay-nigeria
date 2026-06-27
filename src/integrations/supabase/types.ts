@@ -504,8 +504,11 @@ export type Database = {
           attempts: number
           created_at: string
           id: string
+          last_attempt_at: string | null
           last_error: string | null
+          max_attempts: number
           metadata: Json
+          next_retry_at: string | null
           processed_at: string | null
           provider: string
           request_id: string | null
@@ -517,8 +520,11 @@ export type Database = {
           attempts?: number
           created_at?: string
           id?: string
+          last_attempt_at?: string | null
           last_error?: string | null
+          max_attempts?: number
           metadata?: Json
+          next_retry_at?: string | null
           processed_at?: string | null
           provider?: string
           request_id?: string | null
@@ -530,8 +536,11 @@ export type Database = {
           attempts?: number
           created_at?: string
           id?: string
+          last_attempt_at?: string | null
           last_error?: string | null
+          max_attempts?: number
           metadata?: Json
+          next_retry_at?: string | null
           processed_at?: string | null
           provider?: string
           request_id?: string | null
