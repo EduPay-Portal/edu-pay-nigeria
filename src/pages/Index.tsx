@@ -146,7 +146,7 @@ const Index = () => {
               </h1>
 
               <p className="text-lg text-muted-foreground max-w-lg">
-                Nigeria's most trusted digital payment ecosystem for schools — secure virtual accounts, instant wallet credits, and full transparency for every parent.
+                Welcome to the Ahmadiyya Science College Payment Portal. Simply verify your student information, review the applicable fees, and complete your payment online in just a few minutes.
               </p>
 
               <div className="flex flex-wrap items-center gap-5 pt-2">
