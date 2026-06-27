@@ -37,6 +37,27 @@ export interface AdminContext {
   requestId: string;
   ip: string | null;
   isServiceRole: boolean;
+  actorRole?: AppRole | "service_role" | null;
+}
+
+export type AppRole = "admin" | "student" | "parent";
+
+export async function getUserRole(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<AppRole | null> {
+  const { data, error } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[auth] role lookup failed", error.message, { userId });
+    return null;
+  }
+
+  return (data?.role as AppRole | undefined) ?? null;
 }
 
 /**
@@ -66,15 +87,15 @@ export async function requireAdmin(
 
   // has_role lives in the `private` schema (not exposed via PostgREST), so
   // query user_roles directly with the service-role client which bypasses RLS.
-  const { data: roleRow, error: roleError } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id)
-    .eq("role", "admin")
-    .maybeSingle();
+  const role = await getUserRole(supabase, user.id);
   // Explicit null denial — never trust missing roles.
-  if (roleError || !roleRow) {
-    return json({ error: "Admin role required", request_id: requestId }, 403);
+  if (role !== "admin") {
+    return json({
+      error: "Admin role required",
+      message: "Only school administrators can perform this action.",
+      actor_role: role ?? "none",
+      request_id: requestId,
+    }, 403);
   }
 
   return {
@@ -83,6 +104,7 @@ export async function requireAdmin(
     requestId,
     ip,
     isServiceRole: false,
+    actorRole: role,
   };
 }
 
@@ -105,7 +127,7 @@ export async function requireAdminOrServiceRole(
   const token = authHeader.slice(7).trim();
 
   if (token === serviceRoleKey) {
-    return { user: null, actorId: null, requestId, ip, isServiceRole: true };
+    return { user: null, actorId: null, requestId, ip, isServiceRole: true, actorRole: "service_role" };
   }
 
   return requireAdmin(req, supabase);

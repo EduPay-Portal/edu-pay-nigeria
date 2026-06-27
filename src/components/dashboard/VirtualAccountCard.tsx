@@ -8,6 +8,7 @@ import { useVirtualAccount } from '@/hooks/useVirtualAccount';
 import { useCreateVirtualAccount } from '@/hooks/useCreateVirtualAccount';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface VirtualAccountCardProps {
   studentId?: string;
@@ -18,8 +19,8 @@ export function VirtualAccountCard({ studentId, showCreateButton = true }: Virtu
   const { user } = useAuth();
   const { data: role } = useUserRole();
   const isAdmin = role === 'admin';
-  const { data: account, isLoading } = useVirtualAccount(studentId);
-  const { createAccount, isCreating } = useCreateVirtualAccount();
+  const { data: account, isLoading, isError, error } = useVirtualAccount(studentId);
+  const { createAccount, isCreating, error: creationError } = useCreateVirtualAccount();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -59,6 +60,28 @@ export function VirtualAccountCard({ studentId, showCreateButton = true }: Virtu
     );
   }
 
+  if (isError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Virtual Account
+          </CardTitle>
+          <CardDescription>We could not load your account details</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertTitle>Virtual account unavailable</AlertTitle>
+            <AlertDescription>
+              {error instanceof Error ? error.message : 'Please refresh the page. If this continues, contact the bursary or school administrator.'}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!account) {
     return (
       <Card>
@@ -79,10 +102,18 @@ export function VirtualAccountCard({ studentId, showCreateButton = true }: Virtu
               {isCreating ? 'Creating...' : 'Create Virtual Account'}
             </Button>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              Your virtual account is being provisioned. Please check back shortly or contact an administrator if this persists.
-            </p>
+            <Alert>
+              <AlertTitle>Virtual account is being set up</AlertTitle>
+              <AlertDescription>
+                Your payment account is created automatically after registration. Please check back shortly; if it is still missing, contact the bursary or school administrator.
+              </AlertDescription>
+            </Alert>
           )}
+          {creationError && isAdmin ? (
+            <p className="mt-3 text-sm text-destructive">
+              {creationError.message}
+            </p>
+          ) : null}
         </CardContent>
       </Card>
     );

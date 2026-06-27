@@ -24,6 +24,22 @@ interface Body {
   };
 }
 
+async function provisionStudentVirtualAccount(studentId: string, requestId: string) {
+  const res = await fetch(`${Deno.env.get("SUPABASE_URL")!}/functions/v1/provision-student-virtual-account`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!}`,
+      "x-request-id": requestId,
+    },
+    body: JSON.stringify({ student_id: studentId, provider: "wema" }),
+  });
+  const text = await res.text();
+  let body: unknown = text;
+  try { body = JSON.parse(text); } catch { /* keep text */ }
+  return { ok: res.ok, status: res.status, body };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -96,7 +112,30 @@ serve(async (req) => {
       after: { email: body.email, role: body.role },
     });
 
-    return new Response(JSON.stringify({ user_id: newUserId, email: body.email, request_id: requestId }), {
+    let virtualAccountProvisioning: Awaited<ReturnType<typeof provisionStudentVirtualAccount>> | null = null;
+    if (body.role === "student") {
+      try {
+        virtualAccountProvisioning = await provisionStudentVirtualAccount(newUserId, requestId);
+      } catch (e) {
+        const reason = e instanceof Error ? e.message : "Unknown provisioning error";
+        await writeAudit(admin, {
+          actorId,
+          action: "virtual_account.provision.failed",
+          entityType: "virtual_account",
+          requestId,
+          ip,
+          metadata: { actor_role: "admin", student_id: newUserId, reason, source: "admin-create-user" },
+        });
+        virtualAccountProvisioning = { ok: false, status: 500, body: { error: reason, request_id: requestId } };
+      }
+    }
+
+    return new Response(JSON.stringify({
+      user_id: newUserId,
+      email: body.email,
+      virtual_account_provisioning: virtualAccountProvisioning,
+      request_id: requestId,
+    }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
