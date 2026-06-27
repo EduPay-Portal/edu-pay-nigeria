@@ -14,7 +14,7 @@ Convert the current single-column hero into a responsive 2-column grid inside th
 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center
 ```
 
-- **Left column** — keep the existing eyebrow, headline, paragraph, and CTA row exactly as-is (Sign In, Payment Process, Learn more). Drop `max-w-2xl` since the column constrains width.
+- **Left column** — keep the existing eyebrow, headline, and CTA row. Update paragraph text to "Welcome to the Ahmadiyya Science College Payment Portal. Simply verify your student information, review the applicable fees, and complete your payment online in just a few minutes.". Drop `max-w-2xl` since the column constrains width.
 - **Right column** — new image block:
   ```tsx
   <div className="relative w-full animate-fade-in">
