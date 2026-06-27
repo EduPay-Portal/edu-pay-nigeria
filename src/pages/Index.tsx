@@ -33,6 +33,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useEffect, useState } from "react";
 import logo from "@/assets/logo_asc.png";
+import heroPhoto from "@/assets/asci-students.jpg.asset.json";
 
 const paymentSteps = [
   {
