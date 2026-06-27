@@ -108,9 +108,32 @@ export default function AuditLogPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, category]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [page, category, requestIdFilter, studentIdFilter]);
 
   const filtered = useMemo(() => rows, [rows]);
+
+  const runReconciliation = async () => {
+    setReconciling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('reconcile-missing-virtual-accounts', { body: {} });
+      if (error) throw error;
+      toast.success('Reconciliation complete', {
+        description: `Scanned ${data?.scanned ?? 0}, enqueued ${data?.enqueued ?? 0}, skipped ${data?.skipped ?? 0}.`,
+      });
+      load();
+    } catch (e) {
+      toast.error('Reconciliation failed', { description: e instanceof Error ? e.message : 'Try again.' });
+    } finally {
+      setReconciling(false);
+    }
+  };
+
+  const clearFilters = () => {
+    setRequestIdFilter('');
+    setStudentIdFilter('');
+    setSearchParams({});
+    setPage(0);
+  };
 
   return (
     <div className="space-y-6">
@@ -121,10 +144,25 @@ export default function AuditLogPage() {
           </h1>
           <p className="text-muted-foreground">Sensitive admin & payment actions</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => { setPage(0); load(); }}>
-          <RefreshCw className="h-4 w-4 mr-2" /> Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={runReconciliation} disabled={reconciling}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${reconciling ? 'animate-spin' : ''}`} />
+            {reconciling ? 'Reconciling…' : 'Run VA reconciliation'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => { setPage(0); load(); }}>
+            <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+          </Button>
+        </div>
       </div>
+
+      {(requestIdFilter || studentIdFilter) && (
+        <div className="flex items-center gap-2 flex-wrap text-sm">
+          <span className="text-muted-foreground">Active filters:</span>
+          {requestIdFilter && <Badge variant="secondary" className="font-mono">request_id: {requestIdFilter.slice(0, 12)}…</Badge>}
+          {studentIdFilter && <Badge variant="secondary" className="font-mono">student_id: {studentIdFilter.slice(0, 12)}…</Badge>}
+          <Button variant="ghost" size="sm" onClick={clearFilters}>Clear</Button>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
