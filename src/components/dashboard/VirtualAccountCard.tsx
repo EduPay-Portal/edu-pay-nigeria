@@ -70,14 +70,18 @@ export function VirtualAccountCard({ studentId, showCreateButton = true }: Virtu
           <CardDescription>No virtual account found</CardDescription>
         </CardHeader>
         <CardContent>
-          {showCreateButton && (
-            <Button 
-              onClick={handleCreateAccount} 
+          {showCreateButton && isAdmin ? (
+            <Button
+              onClick={handleCreateAccount}
               disabled={isCreating}
               className="w-full"
             >
               {isCreating ? 'Creating...' : 'Create Virtual Account'}
             </Button>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Your virtual account is being provisioned. Please check back shortly or contact an administrator if this persists.
+            </p>
           )}
         </CardContent>
       </Card>
