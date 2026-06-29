@@ -1,42 +1,19 @@
-## Diagnosis
+## Verify the Vercel redeploy fixed login
 
-The same student credentials (`ascistudent@gmail.com` / `DemoStudent123!`) **succeed on the Lovable preview** — auth logs show `status: 200` logins from `id-preview--...lovable.app` minutes ago. There are **zero login attempts in the auth logs originating from `pay.ahmadiyyasciencecollege.ng`**, even though the user just tried.
+Now that you've redeployed `pay.ahmadiyyasciencecollege.ng` with the corrected env vars, I'll confirm the live site is actually talking to the right backend and that login works.
 
-That means the Vercel site is **not talking to this backend at all**. Its `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` were baked into the Vercel build pointing at a different (older) backend project where this user doesn't exist — so Supabase there returns "Invalid login credentials".
+### Steps
 
-This is purely a Vercel configuration issue, not a code bug. No file changes can fix it from inside Lovable; the env vars live in Vercel's project settings and are read at build time.
+1. **Network check (desktop, 1280×1800)** — Open `https://pay.ahmadiyyasciencecollege.ng/` with Playwright, capture all network requests, and confirm:
+   - Auth POSTs go to `xspfcdxymobmiksiudfo.supabase.co/auth/v1/token` (not the old project)
+   - The `apikey` header matches the new publishable key
 
-## Plan: Fix Vercel env vars + verify
+2. **Login attempt (desktop)** — Submit `ascistudent@gmail.com` / `DemoStudent123!`, screenshot the result. Expect redirect to `/dashboard/student`.
 
-### Step 1 — Update Vercel environment variables
-In the Vercel dashboard for the `pay.ahmadiyyasciencecollege.ng` project:
+3. **Mobile viewport check (390×844)** — Repeat the login on a mobile viewport since that's where you originally hit the issue. Screenshot the dashboard.
 
-**Settings → Environment Variables** — set (for Production, Preview, Development):
+4. **Backend log confirmation** — Query the auth logs for a login event with `referer: pay.ahmadiyyasciencecollege.ng` and `status: 200` in the last few minutes.
 
-```
-VITE_SUPABASE_URL            = https://xspfcdxymobmiksiudfo.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY = <the anon/publishable key from this Lovable Cloud project>
-VITE_SUPABASE_PROJECT_ID     = xspfcdxymobmiksiudfo
-```
+5. **Report** — Show you the screenshots, the auth-log entry, and a short pass/fail summary. If anything still points at the old backend, I'll inspect the served JS bundle to see what URL was actually baked in and tell you exactly what to fix in Vercel (likely a stale build cache or wrong Git branch).
 
-The publishable key value is the `VITE_SUPABASE_PUBLISHABLE_KEY` already in this project's `.env`. I will paste it in chat once you confirm you want to proceed (it's a public anon key, safe to share).
-
-Remove or overwrite any old values pointing at a different `*.supabase.co` URL.
-
-### Step 2 — Redeploy
-Trigger a fresh deploy in Vercel (Deployments → ⋯ → Redeploy, with **"Use existing build cache" off**). Vite inlines `VITE_*` vars at build time, so a redeploy is required — changing env vars alone won't update the live site.
-
-### Step 3 — Verify
-After the deploy completes, I'll use Playwright to:
-1. Open `https://pay.ahmadiyyasciencecollege.ng/` on desktop (1280×1800) and mobile (390×844) viewports.
-2. Inspect the page's network traffic to confirm auth POSTs go to `xspfcdxymobmiksiudfo.supabase.co/auth/v1/token` (not the old project).
-3. Attempt login with `ascistudent@gmail.com` / `DemoStudent123!` and screenshot the resulting dashboard.
-4. Re-check the Lovable Cloud auth logs to confirm the login attempt now appears with `referer: pay.ahmadiyyasciencecollege.ng`.
-
-### Technical notes
-- Vite env vars are compile-time substitutions, not runtime — that's why "just change env vars" without rebuilding does nothing.
-- The publishable/anon key is safe in the browser; RLS protects data.
-- If after redeploy the network tab still shows the old Supabase URL, the Vercel project may be deploying from a different Git branch/repo than expected — we'll check `Settings → Git` next.
-
-### What I need from you
-Confirm you want me to share the publishable key value here so you can paste it into Vercel, then redeploy. After your redeploy, reply and I'll run the Playwright verification.
+No code changes — this is read-only verification.
