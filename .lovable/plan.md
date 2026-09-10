@@ -1,19 +1,26 @@
-## Verify the Vercel redeploy fixed login
+# Login diagnostics and session reliability
 
-Now that you've redeployed `pay.ahmadiyyasciencecollege.ng` with the corrected env vars, I'll confirm the live site is actually talking to the right backend and that login works.
+## User-visible result
 
-### Steps
+Add a public `/diagnostics` page that can be opened even when sign-in fails. It will show the active backend host and project reference, environment mode, publishable-key presence and length, current session state, last authentication attempt, exact returned error text, and a plain-language interpretation. Secrets, tokens, passwords, and full keys will never be displayed.
 
-1. **Network check (desktop, 1280×1800)** — Open `https://pay.ahmadiyyasciencecollege.ng/` with Playwright, capture all network requests, and confirm:
-   - Auth POSTs go to `xspfcdxymobmiksiudfo.supabase.co/auth/v1/token` (not the old project)
-   - The `apikey` header matches the new publishable key
+## Authentication behavior
 
-2. **Login attempt (desktop)** — Submit `ascistudent@gmail.com` / `DemoStudent123!`, screenshot the result. Expect redirect to `/dashboard/student`.
+- Replace the generic sign-in failure toast with categorized guidance for invalid credentials, unconfirmed accounts, rate limits, network/backend reachability failures, and configuration/project mismatches.
+- Preserve the exact auth error message and safe metadata locally for the diagnostics page, with timestamps and request context but no credentials or tokens.
+- After a successful sign-in, verify the session through the auth service and verify that it can be read back from the configured client storage. If it is missing, invalid, or expired, clear the stale session and prompt the user to sign in again.
+- Revalidate the session on protected-app startup, tab visibility/window focus, and a five-minute interval. Handle token refresh failures by recording the failure, signing out stale state, and showing a re-authentication prompt without creating a refresh loop.
 
-3. **Mobile viewport check (390×844)** — Repeat the login on a mobile viewport since that's where you originally hit the issue. Screenshot the dashboard.
+## Server-side failure logging
 
-4. **Backend log confirmation** — Query the auth logs for a login event with `referer: pay.ahmadiyyasciencecollege.ng` and `status: 200` in the last few minutes.
+- Add an `auth_event_logs` database table with explicit grants, RLS, retention-safe fields, and policies that prevent users from reading or modifying logs.
+- Add a `log-auth-event` edge function that accepts only sanitized auth-failure telemetry, records the request origin, backend project reference, error code/message, browser context, timestamp, and request ID, and never accepts passwords or tokens.
+- Call the function best-effort from failed sign-in, session validation, and refresh failures. A logging outage must never replace or obscure the original auth error.
+- Add a small recent-events section to `/diagnostics` that is available only when the current user is authenticated; unauthenticated visitors still get the local diagnostics and configuration check.
 
-5. **Report** — Show you the screenshots, the auth-log entry, and a short pass/fail summary. If anything still points at the old backend, I'll inspect the served JS bundle to see what URL was actually baked in and tell you exactly what to fix in Vercel (likely a stale build cache or wrong Git branch).
+## Technical details
 
-No code changes — this is read-only verification.
+- Add the diagnostics route and focused UI using the existing design tokens and components.
+- Centralize error classification and safe diagnostic data in an auth diagnostics helper so login, refresh, and session checks produce consistent results.
+- Keep the diagnostics page public, but require a valid session before querying server-side event history; do not expose service-role access or raw database errors to the browser.
+- Validate the flow with browser checks for wrong credentials, backend/network failure handling, successful login persistence, expiry/re-auth messaging, and mobile layout. Confirm that requests use the configured backend host and that no secret or token appears in rendered text or logs.
