@@ -273,6 +273,7 @@ export type Database = {
         Row: {
           admission_number: string
           boarding_status: string | null
+          bvn: string | null
           class_level: string
           created_at: string | null
           created_from_import: boolean | null
@@ -284,7 +285,9 @@ export type Database = {
           is_boarder: boolean | null
           is_member: boolean | null
           membership_status: string | null
+          nin: string | null
           parent_id: string | null
+          phone: string | null
           registration_number: string | null
           school_fees: number | null
           section: string | null
@@ -294,6 +297,7 @@ export type Database = {
         Insert: {
           admission_number: string
           boarding_status?: string | null
+          bvn?: string | null
           class_level: string
           created_at?: string | null
           created_from_import?: boolean | null
@@ -305,7 +309,9 @@ export type Database = {
           is_boarder?: boolean | null
           is_member?: boolean | null
           membership_status?: string | null
+          nin?: string | null
           parent_id?: string | null
+          phone?: string | null
           registration_number?: string | null
           school_fees?: number | null
           section?: string | null
@@ -315,6 +321,7 @@ export type Database = {
         Update: {
           admission_number?: string
           boarding_status?: string | null
+          bvn?: string | null
           class_level?: string
           created_at?: string | null
           created_from_import?: boolean | null
@@ -326,7 +333,9 @@ export type Database = {
           is_boarder?: boolean | null
           is_member?: boolean | null
           membership_status?: string | null
+          nin?: string | null
           parent_id?: string | null
+          phone?: string | null
           registration_number?: string | null
           school_fees?: number | null
           section?: string | null
