@@ -4,6 +4,7 @@ import { getDVAProvider, DEFAULT_DVA_PROVIDER } from "../_shared/payments/regist
 import type { ProviderName } from "../_shared/payments/types.ts";
 import { adminClient, corsHeaders, getRequestId, getRequestIp, getUserRole } from "../_shared/auth.ts";
 import { writeAudit } from "../_shared/audit.ts";
+import { allocateAccountNumber } from "../_shared/payments/wema-vas.ts";
 
 interface Body {
   student_id: string;
@@ -125,6 +126,9 @@ serve(async (req) => {
     }
 
     const provider = getDVAProvider(providerName);
+    // The vendor (this app) generates the NUBAN: agreed 3-digit prefix + unique
+    // 7-digit serial allocated by the database.
+    const accountNumber = await allocateAccountNumber(supabase);
     const dva = await provider.createDVA({
       student_id: body.student_id,
       first_name: body.first_name,
@@ -132,6 +136,7 @@ serve(async (req) => {
       email: body.email,
       phone: body.phone,
       bvn: body.bvn,
+      account_number: accountNumber,
     });
 
     const { data: saved, error } = await supabase
@@ -147,6 +152,7 @@ serve(async (req) => {
         bank_code: dva.bank_code,
         environment: dva.environment,
         status: "active",
+        account_status: "active",
         is_active: true,
         metadata: dva.metadata ?? {},
         assigned_at: new Date().toISOString(),

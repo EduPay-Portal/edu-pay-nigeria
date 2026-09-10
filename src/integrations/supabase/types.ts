@@ -273,6 +273,7 @@ export type Database = {
         Row: {
           admission_number: string
           boarding_status: string | null
+          bvn: string | null
           class_level: string
           created_at: string | null
           created_from_import: boolean | null
@@ -284,7 +285,9 @@ export type Database = {
           is_boarder: boolean | null
           is_member: boolean | null
           membership_status: string | null
+          nin: string | null
           parent_id: string | null
+          phone: string | null
           registration_number: string | null
           school_fees: number | null
           section: string | null
@@ -294,6 +297,7 @@ export type Database = {
         Insert: {
           admission_number: string
           boarding_status?: string | null
+          bvn?: string | null
           class_level: string
           created_at?: string | null
           created_from_import?: boolean | null
@@ -305,7 +309,9 @@ export type Database = {
           is_boarder?: boolean | null
           is_member?: boolean | null
           membership_status?: string | null
+          nin?: string | null
           parent_id?: string | null
+          phone?: string | null
           registration_number?: string | null
           school_fees?: number | null
           section?: string | null
@@ -315,6 +321,7 @@ export type Database = {
         Update: {
           admission_number?: string
           boarding_status?: string | null
+          bvn?: string | null
           class_level?: string
           created_at?: string | null
           created_from_import?: boolean | null
@@ -326,7 +333,9 @@ export type Database = {
           is_boarder?: boolean | null
           is_member?: boolean | null
           membership_status?: string | null
+          nin?: string | null
           parent_id?: string | null
+          phone?: string | null
           registration_number?: string | null
           school_fees?: number | null
           section?: string | null
@@ -402,6 +411,7 @@ export type Database = {
           idempotency_key: string | null
           match_status: string | null
           metadata: Json | null
+          nibss_response: string | null
           payer_account_name: string | null
           payer_account_number: string | null
           payer_bank: string | null
@@ -411,6 +421,8 @@ export type Database = {
           provider: string | null
           provider_reference: string | null
           reference: string
+          send_response: string | null
+          session_id: string | null
           settlement_id: string | null
           status: Database["public"]["Enums"]["transaction_status"] | null
           type: Database["public"]["Enums"]["transaction_type"]
@@ -427,6 +439,7 @@ export type Database = {
           idempotency_key?: string | null
           match_status?: string | null
           metadata?: Json | null
+          nibss_response?: string | null
           payer_account_name?: string | null
           payer_account_number?: string | null
           payer_bank?: string | null
@@ -436,6 +449,8 @@ export type Database = {
           provider?: string | null
           provider_reference?: string | null
           reference: string
+          send_response?: string | null
+          session_id?: string | null
           settlement_id?: string | null
           status?: Database["public"]["Enums"]["transaction_status"] | null
           type: Database["public"]["Enums"]["transaction_type"]
@@ -452,6 +467,7 @@ export type Database = {
           idempotency_key?: string | null
           match_status?: string | null
           metadata?: Json | null
+          nibss_response?: string | null
           payer_account_name?: string | null
           payer_account_number?: string | null
           payer_bank?: string | null
@@ -461,6 +477,8 @@ export type Database = {
           provider?: string | null
           provider_reference?: string | null
           reference?: string
+          send_response?: string | null
+          session_id?: string | null
           settlement_id?: string | null
           status?: Database["public"]["Enums"]["transaction_status"] | null
           type?: Database["public"]["Enums"]["transaction_type"]
@@ -554,9 +572,12 @@ export type Database = {
         Row: {
           account_name: string
           account_number: string
+          account_status: string
           assigned_at: string | null
           bank_code: string
           bank_name: string
+          block_reason: string | null
+          blocked_at: string | null
           created_at: string | null
           environment: string
           id: string
@@ -575,9 +596,12 @@ export type Database = {
         Insert: {
           account_name: string
           account_number: string
+          account_status?: string
           assigned_at?: string | null
           bank_code: string
           bank_name: string
+          block_reason?: string | null
+          blocked_at?: string | null
           created_at?: string | null
           environment?: string
           id?: string
@@ -596,9 +620,12 @@ export type Database = {
         Update: {
           account_name?: string
           account_number?: string
+          account_status?: string
           assigned_at?: string | null
           bank_code?: string
           bank_name?: string
+          block_reason?: string | null
+          blocked_at?: string | null
           created_at?: string | null
           environment?: string
           id?: string
@@ -693,6 +720,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      allocate_virtual_account_number: {
+        Args: { p_prefix: string }
+        Returns: string
+      }
       generate_transaction_reference: { Args: never; Returns: string }
       get_duplicate_transactions: {
         Args: never
