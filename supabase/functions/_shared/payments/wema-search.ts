@@ -72,4 +72,4 @@ export async function searchTransactions(
   } finally {
     clearTimeout(timer);
   }
-});
+}
