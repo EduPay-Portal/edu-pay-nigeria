@@ -1,26 +1,74 @@
-# Login diagnostics and session reliability
+# Wema VAS Integration — Audit and Rebuild
 
-## User-visible result
+## What the audit found
 
-Add a public `/diagnostics` page that can be opened even when sign-in fails. It will show the active backend host and project reference, environment mode, publishable-key presence and length, current session state, last authentication attempt, exact returned error text, and a plain-language interpretation. Secrets, tokens, passwords, and full keys will never be displayed.
+I read the official Wema documentation (Introduction & Scope, VAS Integration Endpoints, Account Lookup, Transaction Notification, Transaction Search, Transaction Process Flow, Onboarding) and compared it to the current code.
 
-## Authentication behavior
+**The integration is built backwards.** The current code assumes the school app *calls* Wema to create accounts (`POST {WEMA_BASE_URL}/virtual-account/create`) and receives an HMAC-signed webhook. The documentation says the opposite:
 
-- Replace the generic sign-in failure toast with categorized guidance for invalid credentials, unconfirmed accounts, rate limits, network/backend reachability failures, and configuration/project mismatches.
-- Preserve the exact auth error message and safe metadata locally for the diagnostics page, with timestamps and request context but no credentials or tokens.
-- After a successful sign-in, verify the session through the auth service and verify that it can be read back from the configured client storage. If it is missing, invalid, or expired, clear the stale session and prompt the user to sign in again.
-- Revalidate the session on protected-app startup, tab visibility/window focus, and a five-minute interval. Handle token refresh failures by recording the failure, signing out stale state, and showing a re-authentication prompt without creating a refresh loop.
+- The vendor (this app) **generates its own virtual account numbers** — no creation API at Wema exists.
+- The vendor **hosts** the APIs the bank calls: Account Lookup, Transaction Notification (plus Fetch Mini Statement, Get KYC Details, Block Account listed in onboarding).
+- Authentication is a **static Bearer token issued by the vendor to the bank** — not an API key/HMAC signature.
+- Account numbers are `prefix (3 digits) + unique 7 digits`; the test prefix is **711**.
+- Transaction Search is the only API provided *by the bank*, production only.
 
-## Server-side failure logging
+Concrete defects today:
+- `wema.ts` invents endpoints, fields and an `x-wema-signature` HMAC scheme that appear nowhere in the documentation.
+- Placeholder account numbers start with `9` and are hash-derived (collision-prone), not `711` + unique serial.
+- No Account Lookup endpoint exists, so no bank name-enquiry can ever succeed.
+- `wema-webhook` expects Wema's invented payload shape, not the documented `craccount` / `sessionid` fields, and returns HTTP-style errors instead of the required `{"status":"00"}` body.
+- Idempotency keys off `provider_reference`, not `sessionid`; no account block/inactive state; no `nibssresponse`/`sendresponse` tracking.
 
-- Add an `auth_event_logs` database table with explicit grants, RLS, retention-safe fields, and policies that prevent users from reading or modifying logs.
-- Add a `log-auth-event` edge function that accepts only sanitized auth-failure telemetry, records the request origin, backend project reference, error code/message, browser context, timestamp, and request ID, and never accepts passwords or tokens.
-- Call the function best-effort from failed sign-in, session validation, and refresh failures. A logging outage must never replace or obscure the original auth error.
-- Add a small recent-events section to `/diagnostics` that is available only when the current user is authenticated; unauthenticated visitors still get the local diagnostics and configuration check.
+## What will be built
 
-## Technical details
+### 1. Vendor-hosted APIs (new edge functions, public, Bearer-token protected)
+| Endpoint | Method | Documented |
+|---|---|---|
+| `wema-account-lookup` | POST | Yes — returns `accountname`, `status`, `status_desc`, `bvn`/`nin` |
+| `wema-transaction-notification` | POST | Yes — returns `transactionreference`, `status`, `status_desc` |
+| `wema-mini-statement` | POST | Listed in onboarding; **payload spec not published** |
+| `wema-kyc-details` | POST | Listed in onboarding; **payload spec not published** |
+| `wema-block-account` | POST | Listed in onboarding; **payload spec not published** |
 
-- Add the diagnostics route and focused UI using the existing design tokens and components.
-- Centralize error classification and safe diagnostic data in an auth diagnostics helper so login, refresh, and session checks produce consistent results.
-- Keep the diagnostics page public, but require a valid session before querying server-side event history; do not expose service-role access or raw database errors to the browser.
-- Validate the flow with browser checks for wrong credentials, backend/network failure handling, successful login persistence, expiry/re-auth messaging, and mobile layout. Confirm that requests use the configured backend host and that no secret or token appears in rendered text or logs.
+Account name format: `ASCI/<Student Name>` (vendor name first, per spec). Status codes: `00` success, `07` + `Invalid account` / `Inactive account`.
+
+The three unpublished specs will be implemented to the onboarding test-scenario wording and clearly marked provisional pending Wema's field definitions.
+
+### 2. Account number generation
+Replace the hash-based placeholder with `WEMA_ACCOUNT_PREFIX` (default `711`) + a 7-digit serial drawn from a database sequence, enforced unique. Prefix is read from configuration so production can switch without code changes.
+
+### 3. Transaction notification handling
+- Bearer token check, then strict payload validation.
+- Idempotency on `sessionid`: a repeat returns `status: "00"` and does **not** re-credit the wallet.
+- Resolves `craccount` → student → wallet, credits, writes transaction + reconciliation log.
+- Any internal failure returns a non-`00` status so the bank retries.
+
+### 4. Transaction Search client
+A thin admin-only client for the bank-hosted search API, disabled until Wema supplies the production endpoint.
+
+### 5. Database
+Additive migration only: `virtual_accounts.account_status` (active/inactive/blocked) + `blocked_at`, `transactions.session_id` with a unique index, and `nibss_response` / `send_response` columns. Existing tables and business logic untouched.
+
+### 6. Retire the invented pieces
+`wema-webhook` becomes a deprecated shim that forwards to the notification endpoint; the fabricated `createDVA`/`verifyTransaction` HTTP calls and the HMAC parser are removed from `wema.ts`, which becomes a pure local generator.
+
+### 7. Tests and report
+Deno tests with mocked requests: auth rejection, valid/invalid/inactive lookup, successful notification, duplicate `sessionid`, malformed payload, and `711` prefix generation. Plus `WEMA_VAS_COMPLIANCE.md` — a requirement-by-requirement checklist of satisfied / changed / outstanding items.
+
+## Configuration you must supply
+Nothing is fabricated. These are stored as backend secrets, never in frontend code:
+
+- `WEMA_VAS_BEARER_TOKEN` — the static token you issue to Wema (I can generate this securely).
+- `WEMA_ACCOUNT_PREFIX` — `711` for test; your production prefix once Wema assigns it.
+- `WEMA_VENDOR_NAME` — the vendor name shown first in account names.
+- `WEMA_FALLBACK_BVN` / `WEMA_FALLBACK_NIN` — the responsible-party identity used when a student has neither, since the spec requires at least one.
+- `WEMA_SEARCH_BASE_URL` + credentials — bank-provided, production only.
+
+## Blockers that need Wema
+- Request/response schemas for Fetch Mini Statement, Get KYC Details and Block Account (referenced in onboarding, not published).
+- Your assigned production account prefix.
+- The Transaction Search endpoint and credentials.
+- Whether your accounts are registered as Static or Dynamic (this plan assumes **static**, one per student).
+
+## Scope guarantee
+Auth, wallets, transactions, dashboards, admin functions, imports and notifications are left as-is except where the columns above are added.
