@@ -25,6 +25,7 @@ Content-Type: application/json
 ```
 
 - The token is a shared secret; the same value is configured on our side as `WEMA_VAS_BEARER_TOKEN`.
+- **Confirmed working 2026-09-13:** the current token authenticates successfully against the live sandbox endpoints (verified with a real request). Use the exact token value already shared with you, with no extra spaces or line breaks.
 - Requests with a missing or wrong token receive **HTTP 401**:
 
 ```json
