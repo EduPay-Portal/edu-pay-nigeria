@@ -92,11 +92,35 @@ export default function DVAManagementPage() {
             </h1>
             <p className="text-muted-foreground">Direct Wema Bank Virtual NUBANs</p>
           </div>
-          <Button onClick={handleReissue} disabled={reissuing}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${reissuing ? 'animate-spin' : ''}`} />
-            {reissuing ? 'Re-issuing…' : 'Re-issue Wema DVAs (batch of 50)'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={handleReissue} disabled={reissuing || retiring}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${reissuing ? 'animate-spin' : ''}`} />
+              {reissuing ? 'Re-issuing…' : 'Re-issue Wema DVAs (batch of 50)'}
+            </Button>
+            <Button onClick={handleRetireLegacy} disabled={retiring || reissuing || legacyAccounts.length === 0}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${retiring ? 'animate-spin' : ''}`} />
+              {retiring ? 'Reissuing…' : 'Retire & reissue legacy accounts'}
+            </Button>
+          </div>
         </div>
+
+        {legacyAccounts.length > 0 && (
+          <Card className="border-destructive/40">
+            <CardContent className="flex items-start gap-3 py-4">
+              <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+              <div className="text-sm">
+                <p className="font-semibold">
+                  {legacyAccounts.length} account{legacyAccounts.length === 1 ? '' : 's'} still use an old number
+                </p>
+                <p className="text-muted-foreground">
+                  Only numbers starting with {ACCOUNT_PREFIX} are recognised by the bank. Retire and reissue them,
+                  then send each student their new number.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
 
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
