@@ -80,7 +80,7 @@ export default function DVAManagementPage() {
   };
 
   const wemaCount = accounts.filter(a => a.provider === 'wema' && a.status === 'active').length;
-  const archivedCount = accounts.filter(a => a.status === 'archived').length;
+  const archivedCount = accounts.filter(a => a.status === 'archived' || a.status === 'retired').length;
 
   return (
     
