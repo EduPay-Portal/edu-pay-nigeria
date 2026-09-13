@@ -128,7 +128,7 @@ export default function DVAManagementPage() {
             <CardContent className="text-3xl font-bold text-primary">{wemaCount}</CardContent>
           </Card>
           <Card>
-            <CardHeader><CardTitle>Archived</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Retired / Archived</CardTitle></CardHeader>
             <CardContent className="text-3xl font-bold text-muted-foreground">{archivedCount}</CardContent>
           </Card>
           <Card>
