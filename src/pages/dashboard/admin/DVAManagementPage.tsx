@@ -7,7 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { Landmark, RefreshCw } from 'lucide-react';
+import { Landmark, RefreshCw, AlertTriangle } from 'lucide-react';
+
+const ACCOUNT_PREFIX = '711';
 
 interface VA {
   id: string;
@@ -26,6 +28,7 @@ export default function DVAManagementPage() {
   const [accounts, setAccounts] = useState<VA[]>([]);
   const [loading, setLoading] = useState(true);
   const [reissuing, setReissuing] = useState(false);
+  const [retiring, setRetiring] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -40,6 +43,26 @@ export default function DVAManagementPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const legacyAccounts = accounts.filter(a => a.status === 'active' && !a.account_number.startsWith(ACCOUNT_PREFIX));
+
+  const handleRetireLegacy = async () => {
+    if (!window.confirm(
+      `This will retire ${legacyAccounts.length} old account number(s) in this batch and issue new ${ACCOUNT_PREFIX}-prefixed ones. Payments to the old numbers will be rejected. Continue?`
+    )) return;
+    setRetiring(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('dva-retire-legacy', { body: { limit: 50 } });
+      if (error) throw error;
+      const s = data?.summary;
+      toast.success(`Reissued ${s?.reissued ?? 0}, skipped ${s?.skipped ?? 0}, errors ${s?.errors ?? 0}`);
+      await load();
+    } catch (e: any) {
+      toast.error(e.message ?? 'Retire & reissue failed');
+    } finally {
+      setRetiring(false);
+    }
+  };
 
   const handleReissue = async () => {
     setReissuing(true);
