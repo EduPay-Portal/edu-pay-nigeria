@@ -35,8 +35,31 @@ type Filters = {
   hasDebt: boolean | null;
 };
 
-function buildStudentQuery(filters: Filters, searchQuery: string) {
-  let q = supabase.from('student_profiles').select('*', { count: 'exact' });
+const sel = (s: string): string => s;
+
+// Find profile ids whose name/email match the search text (names live in `profiles`,
+// not in `student_profiles`, so this has to be a separate lookup).
+async function findMatchingProfileIds(safe: string): Promise<string[]> {
+  const terms = Array.from(new Set([safe, ...safe.split(/\s+/)].filter(t => t.length > 0)));
+  const orExpr = terms
+    .map(t => `first_name.ilike.%${t}%,last_name.ilike.%${t}%,email.ilike.%${t}%`)
+    .join(',');
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(sel('id'))
+    .or(orExpr)
+    .limit(500);
+
+  if (error) {
+    console.error('admin-students: profile name search failed', error);
+    return [];
+  }
+  return (data || []).map((p: any) => p.id);
+}
+
+async function buildStudentQuery(filters: Filters, searchQuery: string) {
+  let q = supabase.from('student_profiles').select(sel('*'), { count: 'exact' });
 
   if (filters.classLevels.length > 0) q = q.in('class_level', filters.classLevels);
   if (filters.membershipStatus.length > 0) q = q.in('membership_status', filters.membershipStatus);
@@ -47,9 +70,16 @@ function buildStudentQuery(filters: Filters, searchQuery: string) {
   const trimmed = searchQuery.trim();
   if (trimmed) {
     const safe = trimmed.replace(/[%,()*]/g, '');
-    q = q.or(
-      `admission_number.ilike.%${safe}%,class_level.ilike.%${safe}%,registration_number.ilike.%${safe}%`
-    );
+    const conditions = [
+      `admission_number.ilike.%${safe}%`,
+      `class_level.ilike.%${safe}%`,
+      `registration_number.ilike.%${safe}%`,
+    ];
+    const profileIds = await findMatchingProfileIds(safe);
+    if (profileIds.length > 0) {
+      conditions.push(`user_id.in.(${profileIds.join(',')})`);
+    }
+    q = q.or(conditions.join(','));
   }
   return q;
 }
