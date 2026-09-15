@@ -35,8 +35,31 @@ type Filters = {
   hasDebt: boolean | null;
 };
 
-function buildStudentQuery(filters: Filters, searchQuery: string) {
-  let q = supabase.from('student_profiles').select('*', { count: 'exact' });
+const sel = (s: string): string => s;
+
+// Find profile ids whose name/email match the search text (names live in `profiles`,
+// not in `student_profiles`, so this has to be a separate lookup).
+async function findMatchingProfileIds(safe: string): Promise<string[]> {
+  const terms = Array.from(new Set([safe, ...safe.split(/\s+/)].filter(t => t.length > 0)));
+  const orExpr = terms
+    .map(t => `first_name.ilike.%${t}%,last_name.ilike.%${t}%,email.ilike.%${t}%`)
+    .join(',');
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(sel('id'))
+    .or(orExpr)
+    .limit(500);
+
+  if (error) {
+    console.error('admin-students: profile name search failed', error);
+    return [];
+  }
+  return (data || []).map((p: any) => p.id);
+}
+
+async function buildStudentQuery(filters: Filters, searchQuery: string) {
+  let q = supabase.from('student_profiles').select(sel('*'), { count: 'exact' });
 
   if (filters.classLevels.length > 0) q = q.in('class_level', filters.classLevels);
   if (filters.membershipStatus.length > 0) q = q.in('membership_status', filters.membershipStatus);
@@ -47,11 +70,19 @@ function buildStudentQuery(filters: Filters, searchQuery: string) {
   const trimmed = searchQuery.trim();
   if (trimmed) {
     const safe = trimmed.replace(/[%,()*]/g, '');
-    q = q.or(
-      `admission_number.ilike.%${safe}%,class_level.ilike.%${safe}%,registration_number.ilike.%${safe}%`
-    );
+    const conditions = [
+      `admission_number.ilike.%${safe}%`,
+      `class_level.ilike.%${safe}%`,
+      `registration_number.ilike.%${safe}%`,
+    ];
+    const profileIds = await findMatchingProfileIds(safe);
+    if (profileIds.length > 0) {
+      conditions.push(`user_id.in.(${profileIds.join(',')})`);
+    }
+    q = q.or(conditions.join(','));
   }
-  return q;
+  // Wrapped so callers can `await` the builder construction without executing the query.
+  return { query: q };
 }
 
 export default function StudentsPage() {
@@ -101,9 +132,11 @@ export default function StudentsPage() {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      const { data: studentData, count, error: studentError } = await buildStudentQuery(filters, searchQuery)
+      const { query: baseQuery } = await buildStudentQuery(filters, searchQuery);
+      const { data: studentData, count, error: studentError } = await baseQuery
         .order('created_at', { ascending: false })
-        .range(from, to);
+        .range(from, to)
+        .returns<any[]>();
 
       if (studentError) {
         console.error('admin-students: student_profiles query failed', studentError);
@@ -157,23 +190,8 @@ export default function StudentsPage() {
   const avgBalance = totalStudents > 0 ? totalBalance / totalStudents : 0;
   const studentsWithoutVA = Math.max(0, totalStudents - (stats?.va_count ?? 0));
 
-  // Client-side name filter (operates only on current page rows)
-  const filteredStudents = useMemo(() => {
-    const trimmed = searchQuery.trim().toLowerCase();
-    if (!trimmed) return students;
-    return students.filter((student: any) => {
-      const profile = Array.isArray(student.profiles) ? student.profiles[0] : student.profiles;
-      if (!profile) return true;
-      return (
-        profile.first_name?.toLowerCase().includes(trimmed) ||
-        profile.last_name?.toLowerCase().includes(trimmed) ||
-        profile.email?.toLowerCase().includes(trimmed) ||
-        student.admission_number?.toLowerCase().includes(trimmed) ||
-        student.class_level?.toLowerCase().includes(trimmed) ||
-        student.registration_number?.toLowerCase().includes(trimmed)
-      );
-    });
-  }, [students, searchQuery]);
+  // Search is handled server-side (names/emails included), so show rows as returned.
+  const filteredStudents = students;
 
   const availableClasses = useMemo(
     () => Array.from(new Set(students.map((s: any) => s.class_level).filter(Boolean) as string[])).sort(),
@@ -198,9 +216,11 @@ export default function StudentsPage() {
       const allStudents: any[] = [];
       // First batch + count
       while (true) {
-        const { data, error } = await buildStudentQuery(filters, searchQuery)
+        const { query: exportQuery } = await buildStudentQuery(filters, searchQuery);
+        const { data, error } = await exportQuery
           .order('created_at', { ascending: false })
-          .range(from, from + PAGE - 1);
+          .range(from, from + PAGE - 1)
+          .returns<any[]>();
         if (error) throw error;
         if (!data || data.length === 0) break;
         allStudents.push(...data);
