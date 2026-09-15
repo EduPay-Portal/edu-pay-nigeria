@@ -296,6 +296,13 @@ export default function BulkImportPage() {
                         </div>
                       </TableCell>
                       <TableCell>
+                        {record["NIN"] || record["BVN"] ? (
+                          <Badge variant="secondary" className="text-xs">Provided</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {record.error_message ? (
                           <div className="space-y-2">
                             <Badge variant="destructive" className="gap-1">
