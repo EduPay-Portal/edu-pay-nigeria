@@ -279,6 +279,9 @@ serve(async (req) => {
           debt_balance: debt,
           membership_status: membershipStatus,
           boarding_status: boardingStatus,
+          ...(nin ? { nin } : {}),
+          ...(bvn ? { bvn } : {}),
+          ...(phone ? { phone } : {}),
         };
 
         if (existingProfile) {
