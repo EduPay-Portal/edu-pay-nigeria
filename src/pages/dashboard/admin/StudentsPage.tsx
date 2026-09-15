@@ -231,9 +231,11 @@ export default function StudentsPage() {
       const allStudents: any[] = [];
       // First batch + count
       while (true) {
-        const { data, error } = await buildStudentQuery(filters, searchQuery)
+        const { query: exportQuery } = await buildStudentQuery(filters, searchQuery);
+        const { data, error } = await exportQuery
           .order('created_at', { ascending: false })
-          .range(from, from + PAGE - 1);
+          .range(from, from + PAGE - 1)
+          .returns<any[]>();
         if (error) throw error;
         if (!data || data.length === 0) break;
         allStudents.push(...data);
