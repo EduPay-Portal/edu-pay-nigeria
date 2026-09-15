@@ -253,9 +253,11 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          </span>
         </CardTitle>
         <CardDescription>
-          Upload a CSV file with student data. Required columns: SN, SURNAME, NAMES, CLASS, REG NO, MEMBER/NMEMBER, DAY/BOARDER, SCHOOL FEES, DEBTS
+          Upload a CSV file with student data. Required columns: SN, SURNAME, NAMES, CLASS, REG NO, MEMBER/NMEMBER, DAY/BOARDER, SCHOOL FEES, DEBTS.
+          Optional columns: NIN, BVN, PHONE (11-digit NIN/BVN — needed for live bank payments).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -263,6 +265,18 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {warnings.length > 0 && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <p className="font-medium mb-1">Identity values to check (rows will still upload):</p>
+              <ul className="list-disc pl-4 space-y-0.5 text-sm">
+                {warnings.map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            </AlertDescription>
           </Alert>
         )}
 
