@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, FileText, AlertCircle, CheckCircle2, Trash2, Loader2 } from "lucide-react";
+import { Upload, FileText, AlertCircle, CheckCircle2, Trash2, Loader2, Download } from "lucide-react";
 import Papa from "papaparse";
 import {
   AlertDialog,
