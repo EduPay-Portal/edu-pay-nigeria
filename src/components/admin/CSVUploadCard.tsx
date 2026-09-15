@@ -30,6 +30,27 @@ interface CSVRow {
   "DAY/BOARDER": string;
   "SCHOOL FEES": string;
   DEBTS: string;
+  NIN?: string;
+  BVN?: string;
+  PHONE?: string;
+}
+
+const clean = (value?: string) => (value ?? "").trim();
+
+const isValidNin = (v: string) => /^\d{11}$/.test(v);
+const isValidBvn = (v: string) => /^\d{11}$/.test(v);
+const isValidPhone = (v: string) => /^(\+234|0)[789]\d{9}$/.test(v);
+
+/** Returns human-readable problems for the identity fields of a row (empty values are allowed). */
+function identityIssues(row: CSVRow, rowNumber: number): string[] {
+  const issues: string[] = [];
+  const nin = clean(row.NIN);
+  const bvn = clean(row.BVN);
+  const phone = clean(row.PHONE);
+  if (nin && !isValidNin(nin)) issues.push(`Row ${rowNumber}: NIN must be exactly 11 digits`);
+  if (bvn && !isValidBvn(bvn)) issues.push(`Row ${rowNumber}: BVN must be exactly 11 digits`);
+  if (phone && !isValidPhone(phone)) issues.push(`Row ${rowNumber}: phone must look like 08012345678 or +2348012345678`);
+  return issues;
 }
 
 interface CSVUploadCardProps {
