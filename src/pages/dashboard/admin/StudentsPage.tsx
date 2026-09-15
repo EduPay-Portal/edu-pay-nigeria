@@ -132,7 +132,7 @@ export default function StudentsPage() {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      const baseQuery = await buildStudentQuery(filters, searchQuery);
+      const { query: baseQuery } = await buildStudentQuery(filters, searchQuery);
       const { data: studentData, count, error: studentError } = await baseQuery
         .order('created_at', { ascending: false })
         .range(from, to)
