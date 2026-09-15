@@ -190,23 +190,8 @@ export default function StudentsPage() {
   const avgBalance = totalStudents > 0 ? totalBalance / totalStudents : 0;
   const studentsWithoutVA = Math.max(0, totalStudents - (stats?.va_count ?? 0));
 
-  // Client-side name filter (operates only on current page rows)
-  const filteredStudents = useMemo(() => {
-    const trimmed = searchQuery.trim().toLowerCase();
-    if (!trimmed) return students;
-    return students.filter((student: any) => {
-      const profile = Array.isArray(student.profiles) ? student.profiles[0] : student.profiles;
-      if (!profile) return true;
-      return (
-        profile.first_name?.toLowerCase().includes(trimmed) ||
-        profile.last_name?.toLowerCase().includes(trimmed) ||
-        profile.email?.toLowerCase().includes(trimmed) ||
-        student.admission_number?.toLowerCase().includes(trimmed) ||
-        student.class_level?.toLowerCase().includes(trimmed) ||
-        student.registration_number?.toLowerCase().includes(trimmed)
-      );
-    });
-  }, [students, searchQuery]);
+  // Search is handled server-side (names/emails included), so show rows as returned.
+  const filteredStudents = students;
 
   const availableClasses = useMemo(
     () => Array.from(new Set(students.map((s: any) => s.class_level).filter(Boolean) as string[])).sort(),
