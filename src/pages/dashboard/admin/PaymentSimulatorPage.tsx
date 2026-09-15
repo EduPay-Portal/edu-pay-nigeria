@@ -27,7 +27,7 @@ export default function PaymentSimulatorPage() {
   const queryClient = useQueryClient();
 
   // Fetch students with virtual accounts
-  const { data: students, isLoading: loadingStudents } = useQuery({
+  const { data: students, isLoading: loadingStudents, error: studentsError } = useQuery({
     queryKey: ['students-with-va'],
     queryFn: async () => {
       // First, get all active virtual accounts
@@ -42,27 +42,37 @@ export default function PaymentSimulatorPage() {
       // Get the student IDs that have virtual accounts
       const studentIds = virtualAccounts.map(va => va.student_id);
 
-      // Fetch student profiles with names for those students
-      const { data: studentProfiles, error: spError } = await supabase
-        .from('student_profiles')
-        .select(`
-          user_id,
-          profiles!inner(first_name, last_name)
-        `)
-        .in('user_id', studentIds);
+      // Fetch student profiles and names separately (no FK between these tables)
+      const [{ data: studentProfiles, error: spError }, { data: profiles, error: pError }] =
+        await Promise.all([
+          supabase.from('student_profiles').select('user_id').in('user_id', studentIds),
+          supabase.from('profiles').select('id, first_name, last_name').in('id', studentIds),
+        ]);
 
       if (spError) throw spError;
+      if (pError) throw pError;
       if (!studentProfiles) return [];
 
       // Merge the data client-side
-      return studentProfiles.map(sp => {
-        const va = virtualAccounts.find(v => v.student_id === sp.user_id);
-        return {
-          user_id: sp.user_id,
-          profiles: sp.profiles,
-          virtual_accounts: va,
-        };
-      }).filter(s => s.virtual_accounts); // Only return students with VA
+      return studentProfiles
+        .map(sp => {
+          const va = virtualAccounts.find(v => v.student_id === sp.user_id);
+          const profile = profiles?.find(p => p.id === sp.user_id);
+          return {
+            user_id: sp.user_id,
+            profiles: {
+              first_name: profile?.first_name ?? '',
+              last_name: profile?.last_name ?? '',
+            },
+            virtual_accounts: va,
+          };
+        })
+        .filter(s => s.virtual_accounts)
+        .sort((a, b) =>
+          `${a.profiles.first_name} ${a.profiles.last_name}`.trim().localeCompare(
+            `${b.profiles.first_name} ${b.profiles.last_name}`.trim()
+          )
+        );
     },
   });
 
@@ -110,19 +120,31 @@ export default function PaymentSimulatorPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transactions')
-        .select(`
-          id,
-          amount,
-          paystack_reference,
-          created_at,
-          profiles!inner(first_name, last_name)
-        `)
+        .select('id, amount, paystack_reference, created_at, user_id')
         .eq('payment_channel', 'simulation')
         .order('created_at', { ascending: false })
         .limit(5);
 
       if (error) throw error;
-      return data;
+      if (!data || data.length === 0) return [];
+
+      const { data: profiles, error: pError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', data.map(t => t.user_id));
+
+      if (pError) throw pError;
+
+      return data.map(t => {
+        const profile = profiles?.find(p => p.id === t.user_id);
+        return {
+          ...t,
+          profiles: {
+            first_name: profile?.first_name ?? '',
+            last_name: profile?.last_name ?? '',
+          },
+        };
+      });
     },
   });
 
@@ -251,18 +273,36 @@ export default function PaymentSimulatorPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="student">Select Student</Label>
-              <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+              <Select
+                value={selectedStudentId}
+                onValueChange={setSelectedStudentId}
+                disabled={loadingStudents || !!studentsError}
+              >
                 <SelectTrigger id="student">
-                  <SelectValue placeholder="Choose a student..." />
+                  <SelectValue
+                    placeholder={loadingStudents ? 'Loading students...' : 'Choose a student...'}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {students?.map((student: any) => (
-                    <SelectItem key={student.user_id} value={student.user_id}>
-                      {student.profiles.first_name} {student.profiles.last_name}
-                    </SelectItem>
-                  ))}
+                  {students && students.length > 0 ? (
+                    students.map((student: any) => (
+                      <SelectItem key={student.user_id} value={student.user_id}>
+                        {`${student.profiles.first_name} ${student.profiles.last_name}`.trim() ||
+                          student.virtual_accounts?.account_number}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="px-2 py-3 text-sm text-muted-foreground">
+                      No students with a virtual account
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
+              {studentsError && (
+                <p className="text-sm text-destructive">
+                  Couldn't load students. Please refresh the page and try again.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
