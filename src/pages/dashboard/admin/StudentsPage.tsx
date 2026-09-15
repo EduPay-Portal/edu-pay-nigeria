@@ -131,9 +131,11 @@ export default function StudentsPage() {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      const { data: studentData, count, error: studentError } = await buildStudentQuery(filters, searchQuery)
+      const baseQuery = await buildStudentQuery(filters, searchQuery);
+      const { data: studentData, count, error: studentError } = await baseQuery
         .order('created_at', { ascending: false })
-        .range(from, to);
+        .range(from, to)
+        .returns<any[]>();
 
       if (studentError) {
         console.error('admin-students: student_profiles query failed', studentError);
