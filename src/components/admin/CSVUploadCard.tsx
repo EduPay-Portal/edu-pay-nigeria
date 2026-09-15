@@ -138,6 +138,9 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
         "DAY/BOARDER": row["DAY/BOARDER"],
         "SCHOOL FEES": row["SCHOOL FEES"],
         "DEBTS": row.DEBTS || "0",
+        "NIN": clean(row.NIN) || null,
+        "BVN": clean(row.BVN) || null,
+        "PHONE": clean(row.PHONE) || null,
         parent_email: `${row.SURNAME.toLowerCase().replace(/[^a-z0-9]/g, '')}.parent@edupay.school`,
         processed: false,
       }));
