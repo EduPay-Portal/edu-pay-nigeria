@@ -120,19 +120,31 @@ export default function PaymentSimulatorPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transactions')
-        .select(`
-          id,
-          amount,
-          paystack_reference,
-          created_at,
-          profiles!inner(first_name, last_name)
-        `)
+        .select('id, amount, paystack_reference, created_at, user_id')
         .eq('payment_channel', 'simulation')
         .order('created_at', { ascending: false })
         .limit(5);
 
       if (error) throw error;
-      return data;
+      if (!data || data.length === 0) return [];
+
+      const { data: profiles, error: pError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', data.map(t => t.user_id));
+
+      if (pError) throw pError;
+
+      return data.map(t => {
+        const profile = profiles?.find(p => p.id === t.user_id);
+        return {
+          ...t,
+          profiles: {
+            first_name: profile?.first_name ?? '',
+            last_name: profile?.last_name ?? '',
+          },
+        };
+      });
     },
   });
 
