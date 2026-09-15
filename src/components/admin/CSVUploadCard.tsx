@@ -226,6 +226,13 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
             <Upload className="h-5 w-5" />
             Upload CSV File
           </span>
+          <span className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <a href="/student-import-template.csv" download>
+              <Download className="h-4 w-4 mr-2" />
+              Download Template
+            </a>
+          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="sm">
