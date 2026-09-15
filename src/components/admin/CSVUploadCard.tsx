@@ -345,6 +345,9 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
                       <td className="p-2">{row.CLASS}</td>
                       <td className="p-2">{row["REG NO"]}</td>
                       <td className="p-2">{row["MEMBER/NMEMBER"]}</td>
+                      <td className="p-2 text-xs text-muted-foreground">
+                        {clean(row.NIN) || "—"} / {clean(row.BVN) || "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
