@@ -27,7 +27,7 @@ export default function PaymentSimulatorPage() {
   const queryClient = useQueryClient();
 
   // Fetch students with virtual accounts
-  const { data: students, isLoading: loadingStudents } = useQuery({
+  const { data: students, isLoading: loadingStudents, error: studentsError } = useQuery({
     queryKey: ['students-with-va'],
     queryFn: async () => {
       // First, get all active virtual accounts
@@ -42,27 +42,37 @@ export default function PaymentSimulatorPage() {
       // Get the student IDs that have virtual accounts
       const studentIds = virtualAccounts.map(va => va.student_id);
 
-      // Fetch student profiles with names for those students
-      const { data: studentProfiles, error: spError } = await supabase
-        .from('student_profiles')
-        .select(`
-          user_id,
-          profiles!inner(first_name, last_name)
-        `)
-        .in('user_id', studentIds);
+      // Fetch student profiles and names separately (no FK between these tables)
+      const [{ data: studentProfiles, error: spError }, { data: profiles, error: pError }] =
+        await Promise.all([
+          supabase.from('student_profiles').select('user_id').in('user_id', studentIds),
+          supabase.from('profiles').select('id, first_name, last_name').in('id', studentIds),
+        ]);
 
       if (spError) throw spError;
+      if (pError) throw pError;
       if (!studentProfiles) return [];
 
       // Merge the data client-side
-      return studentProfiles.map(sp => {
-        const va = virtualAccounts.find(v => v.student_id === sp.user_id);
-        return {
-          user_id: sp.user_id,
-          profiles: sp.profiles,
-          virtual_accounts: va,
-        };
-      }).filter(s => s.virtual_accounts); // Only return students with VA
+      return studentProfiles
+        .map(sp => {
+          const va = virtualAccounts.find(v => v.student_id === sp.user_id);
+          const profile = profiles?.find(p => p.id === sp.user_id);
+          return {
+            user_id: sp.user_id,
+            profiles: {
+              first_name: profile?.first_name ?? '',
+              last_name: profile?.last_name ?? '',
+            },
+            virtual_accounts: va,
+          };
+        })
+        .filter(s => s.virtual_accounts)
+        .sort((a, b) =>
+          `${a.profiles.first_name} ${a.profiles.last_name}`.trim().localeCompare(
+            `${b.profiles.first_name} ${b.profiles.last_name}`.trim()
+          )
+        );
     },
   });
 
