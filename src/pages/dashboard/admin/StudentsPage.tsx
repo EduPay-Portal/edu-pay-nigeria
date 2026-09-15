@@ -81,7 +81,8 @@ async function buildStudentQuery(filters: Filters, searchQuery: string) {
     }
     q = q.or(conditions.join(','));
   }
-  return q;
+  // Wrapped so callers can `await` the builder construction without executing the query.
+  return { query: q };
 }
 
 export default function StudentsPage() {
