@@ -63,6 +63,7 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const { toast } = useToast();
 
   const requiredColumns = ["SN", "SURNAME", "NAMES", "CLASS", "REG NO", "MEMBER/NMEMBER", "DAY/BOARDER", "SCHOOL FEES", "DEBTS"];
