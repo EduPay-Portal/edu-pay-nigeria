@@ -334,6 +334,7 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
                     <th className="p-2 text-left">Class</th>
                     <th className="p-2 text-left">Reg No</th>
                     <th className="p-2 text-left">Status</th>
+                    <th className="p-2 text-left">NIN / BVN</th>
                   </tr>
                 </thead>
                 <tbody>
