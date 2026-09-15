@@ -249,6 +249,7 @@ export default function BulkImportPage() {
                         <TableHead>Parent</TableHead>
                         <TableHead>Debt</TableHead>
                         <TableHead>Type</TableHead>
+                        <TableHead>Identity</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
