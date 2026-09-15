@@ -12,6 +12,9 @@ interface StagingRecord {
   "DAY/BOARDER": string;
   "SCHOOL FEES": string;
   "DEBTS": string;
+  "NIN"?: string | null;
+  "BVN"?: string | null;
+  "PHONE"?: string | null;
   parent_email: string;
   parent_id?: string;
   student_id?: string;
