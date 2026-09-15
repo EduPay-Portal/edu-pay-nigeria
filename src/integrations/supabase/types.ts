@@ -346,6 +346,7 @@ export type Database = {
       }
       students_import_staging: {
         Row: {
+          BVN: string | null
           CLASS: string | null
           created_at: string | null
           "DAY/BOARDER": string | null
@@ -354,8 +355,10 @@ export type Database = {
           id: string
           "MEMBER/NMEMBER": string | null
           NAMES: string | null
+          NIN: string | null
           parent_email: string | null
           parent_id: string | null
+          PHONE: string | null
           processed: boolean | null
           "REG NO": string | null
           "SCHOOL FEES": string | null
@@ -364,6 +367,7 @@ export type Database = {
           SURNAME: string | null
         }
         Insert: {
+          BVN?: string | null
           CLASS?: string | null
           created_at?: string | null
           "DAY/BOARDER"?: string | null
@@ -372,8 +376,10 @@ export type Database = {
           id?: string
           "MEMBER/NMEMBER"?: string | null
           NAMES?: string | null
+          NIN?: string | null
           parent_email?: string | null
           parent_id?: string | null
+          PHONE?: string | null
           processed?: boolean | null
           "REG NO"?: string | null
           "SCHOOL FEES"?: string | null
@@ -382,6 +388,7 @@ export type Database = {
           SURNAME?: string | null
         }
         Update: {
+          BVN?: string | null
           CLASS?: string | null
           created_at?: string | null
           "DAY/BOARDER"?: string | null
@@ -390,8 +397,10 @@ export type Database = {
           id?: string
           "MEMBER/NMEMBER"?: string | null
           NAMES?: string | null
+          NIN?: string | null
           parent_email?: string | null
           parent_id?: string | null
+          PHONE?: string | null
           processed?: boolean | null
           "REG NO"?: string | null
           "SCHOOL FEES"?: string | null

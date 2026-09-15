@@ -22,6 +22,9 @@ interface StagingRecord {
   "DAY/BOARDER": string;
   "SCHOOL FEES": string;
   "DEBTS": string;
+  "NIN"?: string | null;
+  "BVN"?: string | null;
+  "PHONE"?: string | null;
   parent_email: string;
   parent_id?: string;
   student_id?: string;
@@ -246,6 +249,7 @@ export default function BulkImportPage() {
                         <TableHead>Parent</TableHead>
                         <TableHead>Debt</TableHead>
                         <TableHead>Type</TableHead>
+                        <TableHead>Identity</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -290,6 +294,13 @@ export default function BulkImportPage() {
                             <Badge variant="default" className="text-xs">Boarder</Badge>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {record["NIN"] || record["BVN"] ? (
+                          <Badge variant="secondary" className="text-xs">Provided</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         {record.error_message ? (

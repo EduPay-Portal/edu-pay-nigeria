@@ -12,6 +12,9 @@ interface StagingRecord {
   "DAY/BOARDER": string;
   "SCHOOL FEES": string;
   "DEBTS": string;
+  "NIN"?: string | null;
+  "BVN"?: string | null;
+  "PHONE"?: string | null;
   parent_email: string;
   parent_id?: string;
   student_id?: string;
@@ -102,6 +105,9 @@ serve(async (req) => {
         const debt = parseFloat((record["DEBTS"] || "0").replace(/,/g, '')) || 0;
         const membershipStatus = record["MEMBER/NMEMBER"] === "MEMBER" ? "MEMBER" : "NMEMBER";
         const boardingStatus = record["DAY/BOARDER"] === "BOARDER" ? "BOARDER" : "DAY";
+        const nin = (record["NIN"] ?? "").toString().trim();
+        const bvn = (record["BVN"] ?? "").toString().trim();
+        const phone = (record["PHONE"] ?? "").toString().trim();
         
         // Derive parent fields from surname
         const parentName = `${surname} Family`;
@@ -273,6 +279,9 @@ serve(async (req) => {
           debt_balance: debt,
           membership_status: membershipStatus,
           boarding_status: boardingStatus,
+          ...(nin ? { nin } : {}),
+          ...(bvn ? { bvn } : {}),
+          ...(phone ? { phone } : {}),
         };
 
         if (existingProfile) {

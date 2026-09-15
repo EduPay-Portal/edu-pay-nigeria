@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, FileText, AlertCircle, CheckCircle2, Trash2, Loader2 } from "lucide-react";
+import { Upload, FileText, AlertCircle, CheckCircle2, Trash2, Loader2, Download } from "lucide-react";
 import Papa from "papaparse";
 import {
   AlertDialog,
@@ -30,6 +30,27 @@ interface CSVRow {
   "DAY/BOARDER": string;
   "SCHOOL FEES": string;
   DEBTS: string;
+  NIN?: string;
+  BVN?: string;
+  PHONE?: string;
+}
+
+const clean = (value?: string) => (value ?? "").trim();
+
+const isValidNin = (v: string) => /^\d{11}$/.test(v);
+const isValidBvn = (v: string) => /^\d{11}$/.test(v);
+const isValidPhone = (v: string) => /^(\+234|0)[789]\d{9}$/.test(v);
+
+/** Returns human-readable problems for the identity fields of a row (empty values are allowed). */
+function identityIssues(row: CSVRow, rowNumber: number): string[] {
+  const issues: string[] = [];
+  const nin = clean(row.NIN);
+  const bvn = clean(row.BVN);
+  const phone = clean(row.PHONE);
+  if (nin && !isValidNin(nin)) issues.push(`Row ${rowNumber}: NIN must be exactly 11 digits`);
+  if (bvn && !isValidBvn(bvn)) issues.push(`Row ${rowNumber}: BVN must be exactly 11 digits`);
+  if (phone && !isValidPhone(phone)) issues.push(`Row ${rowNumber}: phone must look like 08012345678 or +2348012345678`);
+  return issues;
 }
 
 interface CSVUploadCardProps {
@@ -42,6 +63,7 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const { toast } = useToast();
 
   const requiredColumns = ["SN", "SURNAME", "NAMES", "CLASS", "REG NO", "MEMBER/NMEMBER", "DAY/BOARDER", "SCHOOL FEES", "DEBTS"];
@@ -72,8 +94,12 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
         if (missingColumns.length > 0) {
           setError(`Missing required columns: ${missingColumns.join(", ")}`);
           setPreviewData([]);
+          setWarnings([]);
           return;
         }
+
+        const allIssues = data.flatMap((row, idx) => identityIssues(row, idx + 2));
+        setWarnings(allIssues.slice(0, 10));
 
         setPreviewData(data.slice(0, 10)); // Preview first 10 rows
       },
@@ -112,6 +138,9 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
         "DAY/BOARDER": row["DAY/BOARDER"],
         "SCHOOL FEES": row["SCHOOL FEES"],
         "DEBTS": row.DEBTS || "0",
+        "NIN": clean(row.NIN) || null,
+        "BVN": clean(row.BVN) || null,
+        "PHONE": clean(row.PHONE) || null,
         parent_email: `${row.SURNAME.toLowerCase().replace(/[^a-z0-9]/g, '')}.parent@edupay.school`,
         processed: false,
       }));
@@ -197,6 +226,13 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
             <Upload className="h-5 w-5" />
             Upload CSV File
           </span>
+          <span className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <a href="/student-import-template.csv" download>
+              <Download className="h-4 w-4 mr-2" />
+              Download Template
+            </a>
+          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="sm">
@@ -217,9 +253,11 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          </span>
         </CardTitle>
         <CardDescription>
-          Upload a CSV file with student data. Required columns: SN, SURNAME, NAMES, CLASS, REG NO, MEMBER/NMEMBER, DAY/BOARDER, SCHOOL FEES, DEBTS
+          Upload a CSV file with student data. Required columns: SN, SURNAME, NAMES, CLASS, REG NO, MEMBER/NMEMBER, DAY/BOARDER, SCHOOL FEES, DEBTS.
+          Optional columns: NIN, BVN, PHONE (11-digit NIN/BVN — needed for live bank payments).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -227,6 +265,18 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {warnings.length > 0 && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <p className="font-medium mb-1">Identity values to check (rows will still upload):</p>
+              <ul className="list-disc pl-4 space-y-0.5 text-sm">
+                {warnings.map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            </AlertDescription>
           </Alert>
         )}
 
@@ -284,6 +334,7 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
                     <th className="p-2 text-left">Class</th>
                     <th className="p-2 text-left">Reg No</th>
                     <th className="p-2 text-left">Status</th>
+                    <th className="p-2 text-left">NIN / BVN</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -294,6 +345,9 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
                       <td className="p-2">{row.CLASS}</td>
                       <td className="p-2">{row["REG NO"]}</td>
                       <td className="p-2">{row["MEMBER/NMEMBER"]}</td>
+                      <td className="p-2 text-xs text-muted-foreground">
+                        {clean(row.NIN) || "—"} / {clean(row.BVN) || "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
