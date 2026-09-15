@@ -273,18 +273,36 @@ export default function PaymentSimulatorPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="student">Select Student</Label>
-              <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+              <Select
+                value={selectedStudentId}
+                onValueChange={setSelectedStudentId}
+                disabled={loadingStudents || !!studentsError}
+              >
                 <SelectTrigger id="student">
-                  <SelectValue placeholder="Choose a student..." />
+                  <SelectValue
+                    placeholder={loadingStudents ? 'Loading students...' : 'Choose a student...'}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {students?.map((student: any) => (
-                    <SelectItem key={student.user_id} value={student.user_id}>
-                      {student.profiles.first_name} {student.profiles.last_name}
-                    </SelectItem>
-                  ))}
+                  {students && students.length > 0 ? (
+                    students.map((student: any) => (
+                      <SelectItem key={student.user_id} value={student.user_id}>
+                        {`${student.profiles.first_name} ${student.profiles.last_name}`.trim() ||
+                          student.virtual_accounts?.account_number}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="px-2 py-3 text-sm text-muted-foreground">
+                      No students with a virtual account
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
+              {studentsError && (
+                <p className="text-sm text-destructive">
+                  Couldn't load students. Please refresh the page and try again.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
