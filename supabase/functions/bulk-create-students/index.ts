@@ -105,6 +105,9 @@ serve(async (req) => {
         const debt = parseFloat((record["DEBTS"] || "0").replace(/,/g, '')) || 0;
         const membershipStatus = record["MEMBER/NMEMBER"] === "MEMBER" ? "MEMBER" : "NMEMBER";
         const boardingStatus = record["DAY/BOARDER"] === "BOARDER" ? "BOARDER" : "DAY";
+        const nin = (record["NIN"] ?? "").toString().trim();
+        const bvn = (record["BVN"] ?? "").toString().trim();
+        const phone = (record["PHONE"] ?? "").toString().trim();
         
         // Derive parent fields from surname
         const parentName = `${surname} Family`;
