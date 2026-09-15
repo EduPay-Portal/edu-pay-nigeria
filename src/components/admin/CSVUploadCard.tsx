@@ -94,8 +94,12 @@ export function CSVUploadCard({ onUploadComplete }: CSVUploadCardProps) {
         if (missingColumns.length > 0) {
           setError(`Missing required columns: ${missingColumns.join(", ")}`);
           setPreviewData([]);
+          setWarnings([]);
           return;
         }
+
+        const allIssues = data.flatMap((row, idx) => identityIssues(row, idx + 2));
+        setWarnings(allIssues.slice(0, 10));
 
         setPreviewData(data.slice(0, 10)); // Preview first 10 rows
       },
