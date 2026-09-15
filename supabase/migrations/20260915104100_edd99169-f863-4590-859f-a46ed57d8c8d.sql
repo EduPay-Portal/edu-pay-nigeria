@@ -1,0 +1,4 @@
+ALTER TABLE public.students_import_staging
+  ADD COLUMN IF NOT EXISTS "NIN" text,
+  ADD COLUMN IF NOT EXISTS "BVN" text,
+  ADD COLUMN IF NOT EXISTS "PHONE" text;
