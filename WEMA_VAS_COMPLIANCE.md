@@ -43,7 +43,7 @@ Shared code:
 
 ## C. Wema API compliance
 
-**Live end-to-end verification completed 2026-09-14** (valid + invalid token, credit, duplicate notification, statement, KYC, block + post-block lookup). Results logged in `WEMA_HANDOFF.md` §8 — all PASS.
+**Live end-to-end verification re-run 2026-09-17** against the current account set (valid + invalid token, unknown account, credit, duplicate notification, statement, KYC, block + post-block lookup). Results logged in `WEMA_HANDOFF.md` §8 — all PASS. The blocked test account was restored to active afterwards.
 
 | Requirement | Status |
 | --- | --- |
@@ -72,8 +72,8 @@ Shared code:
 | `WEMA_ACCOUNT_PREFIX` | Yes (`711`) | Change to the production prefix only when Wema issues one |
 | `WEMA_VENDOR_NAME` | Yes (`ASCI`) | Appears first in every account name |
 | `WEMA_ENV` | Yes (`sandbox`) | Switch to `production` at go-live |
-| `WEMA_VAS_BEARER_TOKEN` | Yes | Set and verified live 2026-09-14; share the same value with Wema via a secure channel |
-| `WEMA_FALLBACK_BVN` / `WEMA_FALLBACK_NIN` | Yes (sandbox test values) | Replace with real institution identity values before go-live |
+| `WEMA_VAS_BEARER_TOKEN` | Yes | Set and re-verified live 2026-09-17; share the same value with Wema via a secure channel |
+| `WEMA_FALLBACK_BVN` / `WEMA_FALLBACK_NIN` | Yes (sandbox test values) | Real NINs now stored per student; BVN still falls back — capture real BVNs before go-live |
 | `WEMA_SEARCH_BASE_URL` / `WEMA_SEARCH_BEARER_TOKEN` | Pending | Supplied by Wema at go-live |
 
 ## E. Test prefix 711
@@ -82,11 +82,12 @@ Enforced in `accountPrefix()` (default and validated as 3 digits), in the databa
 
 ## F. Remaining blockers
 
-1. ~~`WEMA_VAS_BEARER_TOKEN` created and shared~~ — **Done 2026-09-14** (set, verified live; share the value with Wema securely).
+1. ~~`WEMA_VAS_BEARER_TOKEN` created and shared~~ — **Done** (set, re-verified live 2026-09-17; share the value with Wema securely).
 2. Exact request/response schemas for Mini Statement, KYC Details and Block Account are **not published**; current implementations are provisional and must be confirmed with Wema.
 3. Production account prefix not yet issued by Wema.
 4. Transaction Search endpoint and credentials released only at go-live.
 5. Confirmation required from Wema on static vs dynamic accounts (dynamic requires an `amount` in the lookup response).
-6. ~~Legacy `9`-prefixed accounts reissued~~ — **Done**: 411 active `711` accounts; all legacy accounts retired/archived (verified 2026-09-14).
+6. ~~Legacy `9`-prefixed accounts reissued~~ — **Done**: no legacy accounts remain. After the 2026-09-17 student data reset and re-import the sandbox holds **16 active `711` accounts** (15 SS 3 students + 1 demo), none blocked.
+7. Real BVNs not yet captured for students (NINs are).
 
 **Not production ready** until items 2–5 are resolved with Wema. Sandbox is fully test-ready.
