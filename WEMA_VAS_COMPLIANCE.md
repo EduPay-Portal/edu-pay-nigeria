@@ -43,7 +43,7 @@ Shared code:
 
 ## C. Wema API compliance
 
-**Live end-to-end verification completed 2026-09-14** (valid + invalid token, credit, duplicate notification, statement, KYC, block + post-block lookup). Results logged in `WEMA_HANDOFF.md` §8 — all PASS.
+**Live end-to-end verification re-run 2026-09-17** against the current account set (valid + invalid token, unknown account, credit, duplicate notification, statement, KYC, block + post-block lookup). Results logged in `WEMA_HANDOFF.md` §8 — all PASS. The blocked test account was restored to active afterwards.
 
 | Requirement | Status |
 | --- | --- |
