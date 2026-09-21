@@ -45,6 +45,8 @@ Shared code:
 
 **Live end-to-end verification re-run 2026-09-17** against the current account set (valid + invalid token, unknown account, credit, duplicate notification, statement, KYC, block + post-block lookup). Results logged in `WEMA_HANDOFF.md` §8 — all PASS. The blocked test account was restored to active afterwards.
 
+**2026-09-21 — Wema notified.** Test credentials document (`Wema_VAS_Test_Credentials_ASCI.docx`) shared with Wema; ASCI confirmed all five vendor endpoints are deployed and live. Wema testing is now in progress; awaiting their results and the production URLs and authentication token (Transaction Search credentials).
+
 | Requirement | Status |
 | --- | --- |
 | Static Bearer token authentication on all vendor APIs | Implemented (timing-safe compare; fails closed if unconfigured) |
