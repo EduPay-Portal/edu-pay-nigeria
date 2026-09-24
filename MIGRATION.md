@@ -385,8 +385,10 @@ If anything fails in the 48h window after cutover:
 | Risk | Mitigation |
 |---|---|
 | Password hashes don't migrate | Test with 1 user first; use full `pg_dump` of `auth.users` |
-| Webhook gap during cutover | Schedule low-traffic window; Paystack retries 72h automatically |
+| Wema calls the old URLs after cutover | Keep the Lovable Cloud endpoints live for the 48h dual-run window |
 | Static IP mismatch breaks Wema | Stand up NAT proxy + register IP with Wema before cutover |
+| Scheduled jobs forgotten | Phase 4.4 — `08_setup_cron.sh`; verify `SELECT * FROM cron.job` |
+| Stale fallback keys in `src/lib/env.ts` | Phase 5 step 9 — replace or remove them |
 | Sequences reset to 1 | Step 3.3 `setval()` commands above |
 | Google OAuth redirect mismatch | Update authorised redirect URIs in Google Cloud Console |
 | Service-role key leaked during migration | Never commit secrets; use env vars only; rotate after migration |
@@ -407,10 +409,11 @@ If anything fails in the 48h window after cutover:
 | `01_export_schema.sh` | Dump schema-only SQL from Lovable Cloud |
 | `02_export_data.sh` | Dump `auth.users` + `public.*` data |
 | `03_restore_to_new.sh` | Restore into new Supabase project |
-| `04_deploy_functions.sh` | `supabase functions deploy` all 9 functions |
-| `05_set_secrets.sh` | Template: `supabase secrets set` for all runtime secrets |
+| `04_deploy_functions.sh` | `supabase functions deploy` all 18 functions |
+| `05_set_secrets.sh` | `supabase secrets set` for the 7 manual runtime secrets |
 | `06_gen_types.sh` | Regenerate `src/integrations/supabase/types.ts` |
-| `07_smoke_test.sh` | Curl the deployed function endpoints for a quick health check |
+| `07_smoke_test.sh` | Curl all deployed function endpoints for a quick health check |
+| `08_setup_cron.sh` | Recreate the 2 scheduled jobs (retry worker + daily reconciliation) |
 
 All scripts assume you've already run `supabase login` and `supabase link`.
 
