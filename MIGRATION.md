@@ -30,29 +30,43 @@ Paystack + Wema dashboards ──webhooks──► new Supabase function URLs
 
 ---
 
-## Inventory (what is being moved)
+## Inventory (verified against the live project on 2026-09-24)
 
 | Asset | Count | Where |
 |---|---|---|
-| Public tables | 14 | `supabase/migrations/*.sql` |
-| DB functions + triggers | 18 | embedded in migrations |
-| Edge functions | 9 | `supabase/functions/*` |
-| Runtime secrets | 7 | Lovable Cloud Secrets → new Supabase Vault |
+| Public tables | 15 | `supabase/migrations/*.sql` |
+| RLS policies | 45 | embedded in migrations |
+| DB functions (`public` 20 + `private` 1) | 21 | embedded in migrations |
+| Triggers | 23 | embedded in migrations |
+| Sequences | 3 | embedded in migrations |
+| Edge functions | 18 | `supabase/functions/*` |
+| Scheduled jobs (pg_cron) | 2 | **not** in migrations — `scripts/migration/08_setup_cron.sh` |
+| Runtime secrets to set by hand | 7 | Lovable Cloud Secrets → new project secrets |
 | Auth providers | 2 | Email + Google |
 | Frontend | React + Vite + Tailwind + shadcn | `src/` |
 
-**Edge functions to migrate:** `dva-create`, `wema-webhook`, `paystack-webhook`,
-`bulk-create-students`, `bulk-create-virtual-accounts`, `create-virtual-account`,
-`dva-reissue`, `reconcile-transactions`, `simulate-payment`.
+**Edge functions to migrate (18):** `wema-account-lookup`,
+`wema-transaction-notification`, `wema-mini-statement`, `wema-kyc-details`,
+`wema-block-account`, `wema-webhook`, `dva-create`, `dva-reissue`,
+`dva-retire-legacy`, `create-virtual-account`,
+`provision-student-virtual-account`, `provisioning-retry-worker`,
+`reconcile-missing-virtual-accounts`, `bulk-create-virtual-accounts`,
+`admin-create-user`, `bulk-create-students`, `reconcile-transactions`,
+`simulate-payment`. (`_shared/` is a library folder, not a function.)
 
-**Secrets to migrate:** `PAYSTACK_SECRET_KEY`, `PAYSTACK_PUBLIC_KEY`,
-plus Wema credentials once issued (`WEMA_API_KEY`, `WEMA_WEBHOOK_SECRET`,
-`WEMA_ALLOWED_IPS`, `WEMA_BASE_URL`).
+**Secrets to set by hand (7):** `WEMA_VAS_BEARER_TOKEN`,
+`WEMA_ACCOUNT_PREFIX`, `WEMA_ENV`, `WEMA_VENDOR_NAME`, `WEMA_FALLBACK_BVN`,
+`WEMA_FALLBACK_NIN`, `CRON_SECRET`.
 
 > Note: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`,
-> `SUPABASE_DB_URL`, `SUPABASE_JWKS` are auto-provisioned by the new Supabase
-> project — do **not** copy them from Lovable.
-> `LOVABLE_API_KEY` is Lovable-specific and not needed after migration.
+> `SUPABASE_PUBLISHABLE_KEYS`, `SUPABASE_SECRET_KEYS`, `SUPABASE_DB_URL`,
+> `SUPABASE_JWKS` are auto-provisioned by the new Supabase project — do **not**
+> copy them from Lovable. `LOVABLE_API_KEY` is Lovable-specific and not needed
+> after migration.
+>
+> The Wema bearer token is a **shared secret already held by Wema**. Either
+> reuse the exact same value on the new project (no change for Wema), or
+> generate a new one and send it to them together with the new URLs.
 
 ---
 
