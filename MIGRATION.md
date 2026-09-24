@@ -276,33 +276,55 @@ git add src/integrations/supabase/types.ts && git commit -m "chore: regen types 
 6. **Lower DNS TTL to 300s** at your DNS provider 24h before cutover
 7. **Settings → Domains** → add your custom domain → follow DNS instructions
 8. `vercel.json` is already in the repo (SPA rewrites + asset caching) — nothing to add
+9. **Clean up `src/lib/env.ts`** — it still hardcodes fallback URL/anon-key values
+   from an unrelated old project. Replace them with the new project's values (or
+   remove the fallbacks entirely) so a missing env var fails loudly instead of
+   silently pointing at the wrong backend.
 
 ---
 
-## Phase 6 — Cut Over Webhooks (~30 min, coordinated)
+## Phase 6 — Hand the New Endpoints to Wema (~30 min, coordinated)
 
 **Run during a low-traffic window.**
 
-### 6.1 Paystack
-Dashboard → **Settings → API Keys & Webhooks → Webhook URL:**
+### 6.1 New endpoint base URL
 ```
-https://<NEW_REF>.supabase.co/functions/v1/paystack-webhook
+https://<NEW_REF>.supabase.co/functions/v1
 ```
 
-### 6.2 Wema (when live)
-Account officer portal → Webhook URL:
-```
-https://<NEW_REF>.supabase.co/functions/v1/wema-webhook
-```
-If Wema enforces IP allowlisting on **your** outbound IP, configure a NAT
-proxy (see Security Posture Assessment, P0 #4) and share its static IP with
-Wema **before** cutover.
+The five vendor-hosted VAS endpoints Wema calls:
 
-### 6.3 Send test webhooks from each provider
+| Purpose | Path |
+|---|---|
+| Account Lookup | `/wema-account-lookup` |
+| Transaction Notification | `/wema-transaction-notification` |
+| Mini Statement | `/wema-mini-statement` |
+| KYC Details | `/wema-kyc-details` |
+| Block Account | `/wema-block-account` |
+
+### 6.2 Bearer token
+Either reuse the existing `WEMA_VAS_BEARER_TOKEN` value (nothing changes on
+Wema's side) or generate a new one and send it with the new URLs via a secure
+channel — never by email in plain text, never committed to the repo.
+
+### 6.3 Optional — put the endpoints behind your own domain
+Fronting them with e.g. `api.ahmadiyyasciencecollege.ng` means this is the last
+time Wema ever has to change the addresses they hold.
+
+### 6.4 Regenerate `WEMA_HANDOFF.md`
+Update the base URL, sample `711` accounts and verification date, then send the
+refreshed credentials document to Wema.
+
+### 6.5 Smoke-test the new deployment
 ```bash
 bash scripts/migration/07_smoke_test.sh https://<NEW_REF>.supabase.co
 psql "$NEW_DIRECT_URL" -c "SELECT created_at, provider, event_type, processed FROM webhook_events ORDER BY created_at DESC LIMIT 5"
 ```
+
+Then run a full authenticated pass of all five endpoints with the real bearer
+token: valid auth, invalid auth, known `711` account, unknown account,
+notification, duplicate notification (idempotency), mini statement, KYC, block
+and unblock.
 
 ---
 
