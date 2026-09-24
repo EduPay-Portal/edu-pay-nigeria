@@ -202,7 +202,8 @@ SQL
 ### 3.4 Row-count verification
 ```bash
 for t in profiles user_roles student_profiles parent_profiles admin_profiles \
-         wallets virtual_accounts transactions webhook_events \
+         wallets virtual_accounts virtual_account_provisioning_jobs \
+         transactions webhook_events \
          paystack_webhook_events reconciliation_logs settlements \
          audit_logs students_import_staging; do
   echo "== $t =="
