@@ -217,7 +217,7 @@ Counts must match exactly.
 
 ## Phase 4 — Edge Functions & Secrets (~2 hours)
 
-### 4.1 Deploy all 9 functions
+### 4.1 Deploy all 18 functions
 ```bash
 bash scripts/migration/04_deploy_functions.sh
 ```
@@ -239,7 +239,21 @@ bash scripts/migration/05_set_secrets.sh
   - **Enable "Password HIBP Check"** (leaked password protection)
 - **Email Templates:** re-upload custom templates if any
 
-### 4.4 Regenerate TypeScript types
+### 4.4 Recreate the two scheduled jobs
+
+These live only in the database's cron schedule and are **not** covered by
+`supabase db push`. Without them, provisioning retries and daily reconciliation
+silently never run.
+
+```bash
+CRON_SECRET=<same value as the edge-function secret> \
+  bash scripts/migration/08_setup_cron.sh "$NEW_DIRECT_URL" <NEW_REF>
+```
+
+Expect two active jobs: `virtual-account-provisioning-retry-worker` (*/2 * * * *)
+and `virtual-account-reconciliation-daily` (0 2 * * *).
+
+### 4.5 Regenerate TypeScript types
 ```bash
 bash scripts/migration/06_gen_types.sh <NEW_REF>
 git add src/integrations/supabase/types.ts && git commit -m "chore: regen types for new project"
