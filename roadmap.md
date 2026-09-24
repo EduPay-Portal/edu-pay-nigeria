@@ -6,7 +6,8 @@
 - [x] Stage 2b: DB password + access token received
 - [x] Stage 3: Schema applied (15 tables, 45 policies, 21 functions, 15+2 triggers, 3 sequences) — matches live
 - [x] Stage 4: Data snapshot copied 2026-09-24 (33 logins w/ passwords, all 15 tables row-count match, wallets ₦50,100 match, parent login verified)
-- [ ] Stage 5: Deploy 18 functions + secrets + 2 cron jobs — BLOCKED: access token lacks edge-function/secrets write permission; user to create a new token with full access, and supply Wema bearer token via secure form
+- [x] Stage 5a: 18 functions deployed, WEMA_ACCOUNT_PREFIX/WEMA_ENV/CRON_SECRET set, 2 cron jobs active, smoke test passes (no 404s)
+- [ ] Stage 5b: Set WEMA_VAS_BEARER_TOKEN, WEMA_VENDOR_NAME, WEMA_FALLBACK_BVN, WEMA_FALLBACK_NIN on standby — BLOCKED: values must come from user (not readable from live)
 - [ ] After build: user resets DB password and deletes the migration tokens (they were pasted in chat)
 - [ ] At cutover: re-copy data changed since the snapshot
 - [ ] Stage 6: Repoint Vercel env vars (ONLY after Wema sign-off)
