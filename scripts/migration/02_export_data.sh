@@ -7,10 +7,11 @@ OLD_URL="${1:?usage: $0 <OLD_DIRECT_URL> <OUT_DIR>}"
 OUT="${2:-./migration-dump}"
 mkdir -p "$OUT"
 
+# Verified against the live project on 2026-09-24: 15 public tables.
 TABLES=(
   profiles user_roles
   student_profiles parent_profiles admin_profiles
-  wallets virtual_accounts
+  wallets virtual_accounts virtual_account_provisioning_jobs
   transactions webhook_events paystack_webhook_events
   reconciliation_logs settlements
   audit_logs students_import_staging
