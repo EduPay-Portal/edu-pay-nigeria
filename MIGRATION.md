@@ -430,4 +430,6 @@ remediation list. Top 4 to action **before** going live with Wema:
 
 ---
 
-_Last updated: 2026-05-18. Maintained alongside the codebase._
+_Last updated: 2026-09-24 — inventory re-verified against the live project
+(15 tables, 45 policies, 21 DB functions, 23 triggers, 18 edge functions,
+2 scheduled jobs, 7 manual secrets)._
