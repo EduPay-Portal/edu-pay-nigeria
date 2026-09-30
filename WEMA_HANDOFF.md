@@ -1,18 +1,27 @@
-# Wema Bank VAS — Test Credentials & Integration Details
+# Wema Bank VAS — Production Credentials & Integration Details
 
 **Vendor:** ASCI (Ahmadiyya Science College Payment Portal)
-**Environment:** Sandbox / Test
+**Environment:** Production (ASCI-owned infrastructure, London / eu-west-2)
 **Account type:** Static virtual accounts (no `amount` field in Account Lookup)
-**Test account prefix:** `711` (10-digit NUBAN: `711` + 7-digit serial)
-**Verified live:** 2026-09-17 — all five endpoints re-tested end-to-end against the current test accounts (see §8).
+**Account prefix:** `711` (10-digit NUBAN: `711` + 7-digit serial)
+**Verified live:** 2026-09-30 — all five endpoints deployed and health-checked on the production base URL below.
+
+> **Infrastructure change — 2026-09-30.** Wema completed sandbox testing and gave
+> sign-off. The VAS endpoints have been moved from the previous sandbox host to
+> ASCI-owned infrastructure. **The base URL below replaces the previous
+> `xspfcdxymobmiksiudfo.supabase.co` address.** The previous host remains
+> reachable for a 48-hour dual-run window and is then retired.
 
 ---
 
 ## 1. Base URL
 
 ```
-https://xspfcdxymobmiksiudfo.supabase.co/functions/v1
+https://gnojeitupgppcioahczj.supabase.co/functions/v1
 ```
+
+Previous (deprecated, retired after the 48-hour dual-run window):
+`https://xspfcdxymobmiksiudfo.supabase.co/functions/v1`
 
 All endpoints below are appended to this base URL.
 
@@ -216,7 +225,18 @@ Invalid-account test: any unassigned `711` number, e.g. `7119999999` → `07`.
 4. Confirmation of static vs dynamic accounts (dynamic requires an `amount` field in Account Lookup).
 5. Whether an Unblock Account API is expected (we currently unblock internally via admin).
 
-## 8. Verification Log — 2026-09-17
+## 8. Verification Log
+
+### 8.1 Production host — 2026-09-30
+
+| Test | Result |
+| --- | --- |
+| All five VAS endpoints deployed and reachable on the new base URL | PASS — no 404s; `401 / 96` returned without a token, as designed |
+| Account Lookup `7110234983` with valid token | PASS — `00`, `ASCI/Abdul-Baaqi Oniyide`, NIN + BVN returned |
+| Database, students, virtual accounts and balances | PASS — identical to the previously tested host |
+| Scheduled jobs (provisioning retry `*/2`, reconciliation `0 2 * * *`) | PASS — both active |
+
+### 8.2 Sandbox host — 2026-09-17
 
 | Test | Result |
 | --- | --- |

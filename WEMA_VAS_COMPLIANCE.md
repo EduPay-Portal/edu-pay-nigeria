@@ -45,7 +45,16 @@ Shared code:
 
 **Live end-to-end verification re-run 2026-09-17** against the current account set (valid + invalid token, unknown account, credit, duplicate notification, statement, KYC, block + post-block lookup). Results logged in `WEMA_HANDOFF.md` §8 — all PASS. The blocked test account was restored to active afterwards.
 
-**2026-09-21 — Wema notified.** Test credentials document (`Wema_VAS_Test_Credentials_ASCI.docx`) shared with Wema; ASCI confirmed all five vendor endpoints are deployed and live. Wema testing is now in progress; awaiting their results and the production URLs and authentication token (Transaction Search credentials).
+**2026-09-21 — Wema notified.** Test credentials document (`Wema_VAS_Test_Credentials_ASCI.docx`) shared with Wema; ASCI confirmed all five vendor endpoints are deployed and live. Wema testing commenced.
+
+**2026-09-30 — Wema sign-off received; infrastructure cutover executed.** The VAS endpoints now run on ASCI-owned infrastructure (project `gnojeitupgppcioahczj`, London / eu-west-2).
+
+- New production base URL: `https://gnojeitupgppcioahczj.supabase.co/functions/v1`
+- All 18 edge functions deployed; all five vendor endpoints health-checked (no 404s; `401 / 96` without a token).
+- Schema, data, secrets and both scheduled jobs verified identical to the previous host; delta records since the 2026-09-24 snapshot re-synced (wallet totals match exactly).
+- Account Lookup `7110234983` verified `00` with the live bearer token on the new host.
+- Previous host `xspfcdxymobmiksiudfo.supabase.co` stays reachable for a **48-hour dual-run window** so in-flight Wema notifications are not dropped, then is retired. Rollback = revert the frontend environment variables and Wema's URLs to the previous host.
+- Updated handover document re-issued to Wema; bearer token shared separately via a secure channel.
 
 | Requirement | Status |
 | --- | --- |
