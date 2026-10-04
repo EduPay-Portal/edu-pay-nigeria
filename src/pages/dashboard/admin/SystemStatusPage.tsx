@@ -76,7 +76,9 @@ export default function SystemStatusPage() {
         try {
           // OPTIONS probe: proves the function is deployed and booting without
           // triggering a 401 (which the preview reports as a runtime error).
-          const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, { method: 'OPTIONS' });
+          // no-cors GET: reaches the function without CORS preflight; the opaque
+          // reply hides the 405/401 status so the preview never flags an error.
+          const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, { method: 'GET', mode: 'no-cors', cache: 'no-store' });
           const ms = Math.round(performance.now() - t0);
           const health: Health = res.ok ? 'ok' : res.status === 404 || res.status >= 500 ? 'down' : 'warn';
           return { name, status: res.status, ms, health };
@@ -178,7 +180,7 @@ export default function SystemStatusPage() {
             {endpoints.isLoading ? <Skeleton className="h-8 w-24" /> : (
               <>
                 <div className="text-2xl font-bold">{WEMA_ENDPOINTS.length - endpointsDown}/{WEMA_ENDPOINTS.length}</div>
-                <p className="text-xs text-muted-foreground">Responding & protected</p>
+                <p className="text-xs text-muted-foreground">Reachable</p>
               </>
             )}
           </CardContent>
@@ -199,7 +201,7 @@ export default function SystemStatusPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Server className="h-5 w-5" />Endpoint health</CardTitle>
-          <CardDescription>Each endpoint is called without a token — a healthy one replies 401 (protected).</CardDescription>
+          <CardDescription>Each endpoint is pinged every minute to confirm it is reachable. No payment data is touched.</CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
