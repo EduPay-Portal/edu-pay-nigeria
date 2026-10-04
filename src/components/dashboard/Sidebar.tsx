@@ -1,4 +1,4 @@
-import { LayoutDashboard, Wallet, History, User, Settings, LogOut, Menu, Upload, Webhook, GitCompare, FlaskConical, Banknote, Landmark, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Wallet, History, User, Settings, LogOut, Menu, Upload, Webhook, GitCompare, FlaskConical, Banknote, Landmark, ShieldCheck, Activity } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import logo from '@/assets/logo_asc.png';
 import { useAuth } from '@/contexts/AuthContext';
@@ -46,6 +46,7 @@ const parentItems = [
 
 const adminItems = [
   { title: 'Dashboard', url: '/dashboard/admin', icon: LayoutDashboard },
+  { title: 'System Status', url: '/dashboard/admin/status', icon: Activity },
   { title: 'Students', url: '/dashboard/admin/students', icon: User },
   { title: 'Parents', url: '/dashboard/admin/parents', icon: User },
   { title: 'Transactions', url: '/dashboard/admin/transactions', icon: History },
