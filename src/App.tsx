@@ -23,6 +23,7 @@ import StudentsPage from "./pages/dashboard/admin/StudentsPage";
 import ParentsPage from "./pages/dashboard/admin/ParentsPage";
 import TransactionsPage from "./pages/dashboard/admin/TransactionsPage";
 import SettingsPage from "./pages/dashboard/admin/SettingsPage";
+import SystemStatusPage from "./pages/dashboard/admin/SystemStatusPage";
 import BulkImportPage from "./pages/dashboard/admin/BulkImportPage";
 import WebhooksPage from "./pages/dashboard/admin/WebhooksPage";
 import ReconciliationPage from "./pages/dashboard/admin/ReconciliationPage";
