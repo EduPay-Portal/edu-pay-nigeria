@@ -74,14 +74,11 @@ export default function SystemStatusPage() {
       return Promise.all(WEMA_ENDPOINTS.map(async (name) => {
         const t0 = performance.now();
         try {
-          // No bearer token on purpose: a healthy endpoint answers 401 "Unauthorized".
-          const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: '{}',
-          });
+          // OPTIONS probe: proves the function is deployed and booting without
+          // triggering a 401 (which the preview reports as a runtime error).
+          const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, { method: 'OPTIONS' });
           const ms = Math.round(performance.now() - t0);
-          const health: Health = res.status === 401 ? 'ok' : res.status === 404 || res.status >= 500 ? 'down' : 'warn';
+          const health: Health = res.ok ? 'ok' : res.status === 404 || res.status >= 500 ? 'down' : 'warn';
           return { name, status: res.status, ms, health };
         } catch {
           return { name, status: 0, ms: Math.round(performance.now() - t0), health: 'down' as Health };
