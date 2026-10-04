@@ -80,7 +80,7 @@ export default function SystemStatusPage() {
           // reply hides the 405/401 status so the preview never flags an error.
           const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, { method: 'GET', mode: 'no-cors', cache: 'no-store' });
           const ms = Math.round(performance.now() - t0);
-          const health: Health = res.ok ? 'ok' : res.status === 404 || res.status >= 500 ? 'down' : 'warn';
+          const health: Health = res.type === 'opaque' || res.ok ? 'ok' : 'warn';
           return { name, status: res.status, ms, health };
         } catch {
           return { name, status: 0, ms: Math.round(performance.now() - t0), health: 'down' as Health };
@@ -212,7 +212,7 @@ export default function SystemStatusPage() {
               )) : (endpoints.data ?? []).map(e => (
                 <TableRow key={e.name}>
                   <TableCell className="font-mono text-sm">/{e.name}</TableCell>
-                  <TableCell>{e.status || 'network error'}</TableCell>
+                  <TableCell>{e.health === 'down' ? 'network error' : 'reached'}</TableCell>
                   <TableCell>{e.ms} ms</TableCell>
                   <TableCell><HealthBadge h={e.health} label={e.health === 'ok' ? 'Live' : e.health === 'warn' ? 'Unexpected' : 'Down'} /></TableCell>
                 </TableRow>
