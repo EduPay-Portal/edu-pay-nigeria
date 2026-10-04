@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Activity, CheckCircle2, XCircle, Clock, RefreshCw, Database, ShieldCheck, Server, Webhook, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -44,9 +45,33 @@ function HealthBadge({ h, label }: { h: Health; label: string }) {
   return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />{label}</Badge>;
 }
 
+type FilterTab = 'all' | 'wema' | 'live' | 'simulations';
+
+const isSimulation = (e: UnifiedEvent) =>
+  /^(TEST_|SELFTEST)/i.test(e.reference) || /^(TEST_|SELFTEST)/i.test(String((e.payload as any)?.paymentreference ?? ''));
+
+const FILTERS: Record<FilterTab, (e: UnifiedEvent) => boolean> = {
+  all: () => true,
+  wema: e => e.provider.toLowerCase() === 'wema',
+  live: e => !isSimulation(e),
+  simulations: isSimulation,
+};
+
+const TAB_LABELS: Record<FilterTab, string> = {
+  all: 'All', wema: 'Wema only', live: 'Live payments only', simulations: 'Simulations',
+};
+
+const EMPTY: Record<FilterTab, string> = {
+  all: 'No payment notifications received yet. They will appear here the moment the bank sends one.',
+  wema: 'No Wema Bank notifications yet.',
+  live: 'No live bank payments recorded yet.',
+  simulations: 'No simulator test runs recorded.',
+};
+
 export default function SystemStatusPage() {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<UnifiedEvent | null>(null);
+  const [tab, setTab] = useState<FilterTab>('all');
 
   const db = useQuery({
     queryKey: ['status-db'],
@@ -121,6 +146,7 @@ export default function SystemStatusPage() {
   });
 
   const list = events.data ?? [];
+  const shown = list.filter(FILTERS[tab]);
   const failed = list.filter(e => e.error_message).length;
   const processed = list.filter(e => e.processed && !e.error_message).length;
   const successRate = list.length ? Math.round((processed / list.length) * 100) : null;
@@ -225,7 +251,17 @@ export default function SystemStatusPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Webhook className="h-5 w-5" />Recent payment notifications</CardTitle>
-          <CardDescription>Latest 50 inbound events from Wema and Paystack · auto-refreshes every 10 seconds.</CardDescription>
+          <CardDescription>Latest 50 inbound events · auto-refreshes every 10 seconds.</CardDescription>
+          <Tabs value={tab} onValueChange={v => setTab(v as FilterTab)} className="pt-2">
+            <TabsList className="flex-wrap h-auto">
+              {(Object.keys(TAB_LABELS) as FilterTab[]).map(t => (
+                <TabsTrigger key={t} value={t} className="gap-2">
+                  {TAB_LABELS[t]}
+                  <Badge variant="secondary" className="h-5 px-1.5">{list.filter(FILTERS[t]).length}</Badge>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
@@ -236,11 +272,11 @@ export default function SystemStatusPage() {
             <TableBody>
               {events.isLoading ? Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-5 w-full" /></TableCell></TableRow>
-              )) : list.length === 0 ? (
+              )) : shown.length === 0 ? (
                 <TableRow><TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
-                  No payment notifications received yet. They will appear here the moment the bank sends one.
+                  {EMPTY[tab]}
                 </TableCell></TableRow>
-              ) : list.map(e => (
+              ) : shown.map(e => (
                 <TableRow key={`${e.provider}-${e.id}`}>
                   <TableCell className="whitespace-nowrap text-sm">{format(new Date(e.created_at), 'MMM d, HH:mm:ss')}</TableCell>
                   <TableCell><Badge variant="outline" className="uppercase">{e.provider}</Badge></TableCell>
