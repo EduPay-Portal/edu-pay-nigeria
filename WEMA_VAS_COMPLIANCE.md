@@ -30,7 +30,7 @@ Edge Functions (vendor-hosted, static Bearer auth, POST + JSON only):
 | --- | --- |
 | 1. Account Lookup | `wema-account-lookup` |
 | 2. Transaction Notification | `wema-transaction-notification` |
-| 4. Fetch Mini Statement | `wema-mini-statement` (provisional schema) |
+| 4. Fetch Mini Statement | `wema-mini-statement` (schema confirmed by Wema, Oct 2026) |
 | 5. Get KYC Details | `wema-kyc-details` (provisional schema) |
 | 6. Block Account | `wema-block-account` (provisional schema) |
 | 3. Transaction Search (Wema-hosted) | client in `_shared/payments/wema-search.ts` — disabled until Wema supplies URL + token |

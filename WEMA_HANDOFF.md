@@ -104,7 +104,7 @@ Behavior:
 - Unknown/inactive `craccount` → `07`; the event is logged for reconciliation.
 - Temporary internal failure → `96` "Temporary processing error" so the bank can retry.
 
-### 3.3 Fetch Mini Statement — `/wema-mini-statement` *(schema provisional)*
+### 3.3 Fetch Mini Statement — `/wema-mini-statement` *(schema confirmed by Wema, Oct 2026)*
 
 Request:
 
@@ -112,29 +112,23 @@ Request:
 { "accountnumber": "7110234981" }
 ```
 
-Success response — last 10 days, credits and debits, newest first (max 100). Verified live 2026-09-17:
+Success response — last 10 days, credits and debits, newest first (max 100):
 
 ```json
 {
-  "status": "00",
-  "status_desc": "1 Row(s) returned",
-  "accountnumber": "7110234981",
-  "accountname": "ASCI/Ibrahim Kazeem",
   "transactions": [
     {
-      "transactionreference": "WEMA-SELFTEST1789648859659000000000",
-      "sessionid": "SELFTEST1789648859659000000000",
-      "amount": "100",
-      "type": "C",
-      "narration": "Bank transfer from WEMA SELF TEST",
-      "status": "completed",
-      "transactiondate": "2026-09-17T12:41:02.852436+00:00"
+      "accountNo": "7110234981",
+      "bankName": "Wema Bank",
+      "amount": "100.00",
+      "direction": "Credit",
+      "transactionDate": "2026-10-08 08:04:51.000"
     }
   ]
 }
 ```
 
-`type` is `"C"` (credit) or `"D"` (debit). Invalid account → `07`.
+`direction` is `"Credit"` or `"Debit"`; `amount` is a 2-decimal string; `transactionDate` is UTC in `YYYY-MM-DD HH:MM:SS.sss`. Invalid account → `07`.
 
 ### 3.4 Get KYC Details — `/wema-kyc-details` *(schema provisional)*
 
