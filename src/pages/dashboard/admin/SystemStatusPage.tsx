@@ -249,7 +249,7 @@ export default function SystemStatusPage() {
               )) : (endpoints.data ?? []).map(e => (
                 <TableRow key={e.name}>
                   <TableCell className="font-mono text-sm">/{e.name}</TableCell>
-                  <TableCell>{e.health === 'down' ? 'network error' : 'reached'}</TableCell>
+                  <TableCell>{e.health === 'down' ? 'network error' : e.status ? String(e.status) : 'opaque'}</TableCell>
                   <TableCell>{e.ms} ms</TableCell>
                   <TableCell><HealthBadge h={e.health} label={e.health === 'ok' ? 'Live' : e.health === 'warn' ? 'Unexpected' : 'Down'} /></TableCell>
                 </TableRow>
