@@ -12,6 +12,26 @@ import { format } from 'date-fns';
 import { downloadReceipt } from '@/lib/receipt';
 import { toast } from 'sonner';
 
+async function enrich<T extends { user_id: string }>(rows: T[]) {
+  const ids = Array.from(new Set(rows.map((r) => r.user_id)));
+  const profMap = new Map<string, any>();
+  const roleMap = new Map<string, any>();
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100);
+    const [{ data: profs }, { data: roles }] = await Promise.all([
+      supabase.from('profiles').select('id, first_name, last_name, email').in('id', chunk),
+      supabase.from('user_roles').select('user_id, role').in('user_id', chunk),
+    ]);
+    profs?.forEach((p) => profMap.set(p.id, p));
+    roles?.forEach((r) => roleMap.set(r.user_id, r));
+  }
+  return rows.map((r) => ({
+    ...r,
+    profiles: profMap.get(r.user_id) ?? null,
+    user_roles: roleMap.get(r.user_id) ?? null,
+  })) as any[];
+}
+
 export default function TransactionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [lookupInput, setLookupInput] = useState('');
@@ -33,16 +53,20 @@ export default function TransactionsPage() {
       // Try provider_reference first, then internal reference
       const { data: byProvider } = await supabase
         .from('transactions')
-        .select('*, profiles:user_id(first_name, last_name, email)')
+        .select('*')
         .eq('provider_reference', ref)
-        .maybeSingle();
-      if (byProvider) return byProvider;
-      const { data: byRef } = await supabase
-        .from('transactions')
-        .select('*, profiles:user_id(first_name, last_name, email)')
-        .eq('reference', ref)
-        .maybeSingle();
-      return byRef;
+        .limit(1);
+      let row = byProvider?.[0];
+      if (!row) {
+        const { data: byRef } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('reference', ref)
+          .limit(1);
+        row = byRef?.[0];
+      }
+      if (!row) return null;
+      return (await enrich([row]))[0];
     },
   });
 
@@ -69,21 +93,10 @@ export default function TransactionsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('transactions')
-        .select(`
-          *,
-          profiles:user_id (
-            first_name,
-            last_name,
-            email
-          ),
-          user_roles!inner (
-            role
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
-      return data;
+      return enrich(data || []);
     },
   });
 
