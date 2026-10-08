@@ -106,9 +106,10 @@ export default function SystemStatusPage() {
         try {
           const res = await fetch(url, { method: 'GET', mode: 'cors', cache: 'no-store' });
           const ms = Math.round(performance.now() - t0);
-          // A response with CORS headers came from our function code.
-          // Anything >= 500 means the handler itself is failing.
-          const health: Health = res.status >= 500 ? 'warn' : 'ok';
+          // Our handlers only ever reply 401 (no bearer in the browser — expected),
+          // 405 (GET not allowed) or 200, all with CORS headers. 404 comes from the
+          // Supabase gateway itself: the function is NOT deployed. 5xx = crashing.
+          const health: Health = res.status === 404 ? 'down' : res.status >= 500 ? 'warn' : 'ok';
           return { name, status: res.status, ms, health };
         } catch {
           // Probe 2 — the reply was CORS-blocked (gateway 404/502 for a missing
