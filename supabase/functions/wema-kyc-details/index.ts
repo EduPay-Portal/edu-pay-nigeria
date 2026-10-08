@@ -63,17 +63,14 @@ serve(async (req) => {
 
     logVas("wema-kyc-details", requestId, "returned kyc", { accountNumber, active });
 
-    // Inactive/blocked accounts still return KYC details (per onboarding tests).
+    // Exact shape requested by Wema (Oct 2026 review).
     return vasJson({
-      status: VAS_STATUS.SUCCESS,
-      status_desc: VAS_DESC.SUCCESS,
-      accountnumber: accountNumber,
       accountname: accountName,
-      phonenumber: p?.phone ?? "",
       bvn,
       nin,
-      walletbalance: String(wallet?.balance ?? 0),
-      accountstatus: active ? "active" : "inactive",
+      mobilenumber: p?.phone ?? "",
+      walletbalance: Number(wallet?.balance ?? 0).toFixed(2),
+      status_desc: active ? "Active" : "Inactive",
     });
   } catch (e) {
     console.error(`[wema-kyc-details] req=${requestId} error`, e instanceof Error ? e.message : e);

@@ -72,13 +72,7 @@ serve(async (req) => {
       count: rows.length,
     });
 
-    return vasJson({
-      status: VAS_STATUS.SUCCESS,
-      status_desc: `${rows.length} Row(s) returned`,
-      accountnumber: accountNumber,
-      accountname: va.account_name,
-      transactions: rows,
-    });
+    return vasJson({ transactions: rows });
   } catch (e) {
     console.error(`[wema-mini-statement] req=${requestId} error`, e instanceof Error ? e.message : e);
     return vasJson({ status: "96", status_desc: "Temporary processing error" }, 200);

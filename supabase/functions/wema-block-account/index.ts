@@ -73,7 +73,7 @@ serve(async (req) => {
 
     logVas("wema-block-account", requestId, "account blocked", { accountNumber });
 
-    return vasJson({ status: VAS_STATUS.SUCCESS, status_desc: "Account blocked successfully" });
+    return vasJson({ message: "Account Restricted Successfully" });
   } catch (e) {
     console.error(`[wema-block-account] req=${requestId} error`, e instanceof Error ? e.message : e);
     return vasJson({ status: "96", status_desc: "Temporary processing error" }, 200);
