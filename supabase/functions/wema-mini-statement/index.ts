@@ -57,14 +57,15 @@ serve(async (req) => {
 
     if (error) throw new Error(error.message);
 
+    // Exact item shape confirmed by Wema (Oct 2026):
+    // accountNo, bankName, amount ("0.00" string), direction (Credit|Debit),
+    // transactionDate ("YYYY-MM-DD HH:MM:SS.sss", UTC).
     const rows = (txns ?? []).map((t) => ({
-      transactionreference: t.reference,
-      sessionid: t.session_id ?? "",
-      amount: String(t.amount),
-      type: t.type === "credit" ? "C" : "D",
-      narration: t.description ?? "",
-      status: t.status,
-      transactiondate: t.created_at,
+      accountNo: accountNumber,
+      bankName: "Wema Bank",
+      amount: Number(t.amount ?? 0).toFixed(2),
+      direction: t.type === "credit" ? "Credit" : "Debit",
+      transactionDate: new Date(t.created_at).toISOString().replace("T", " ").slice(0, 23),
     }));
 
     logVas("wema-mini-statement", requestId, "returned statement", {
