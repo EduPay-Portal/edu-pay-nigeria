@@ -98,17 +98,28 @@ export default function SystemStatusPage() {
     queryFn: async () => {
       return Promise.all(WEMA_ENDPOINTS.map(async (name) => {
         const t0 = performance.now();
+        const url = `${SUPABASE_URL}/functions/v1/${name}`;
+        // Probe 1 — normal CORS fetch. Our function code always replies with
+        // Access-Control-Allow-Origin: * (see vasHeaders), so a readable status
+        // proves the function is deployed and executing its own auth guard.
+        // 401 is EXPECTED here (the browser holds no bearer token).
         try {
-          // OPTIONS probe: proves the function is deployed and booting without
-          // triggering a 401 (which the preview reports as a runtime error).
-          // no-cors GET: reaches the function without CORS preflight; the opaque
-          // reply hides the 405/401 status so the preview never flags an error.
-          const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, { method: 'GET', mode: 'no-cors', cache: 'no-store' });
+          const res = await fetch(url, { method: 'GET', mode: 'cors', cache: 'no-store' });
           const ms = Math.round(performance.now() - t0);
-          const health: Health = res.type === 'opaque' || res.ok ? 'ok' : 'warn';
+          // A response with CORS headers came from our function code.
+          // Anything >= 500 means the handler itself is failing.
+          const health: Health = res.status >= 500 ? 'warn' : 'ok';
           return { name, status: res.status, ms, health };
         } catch {
-          return { name, status: 0, ms: Math.round(performance.now() - t0), health: 'down' as Health };
+          // Probe 2 — the reply was CORS-blocked (gateway 404/502 for a missing
+          // or boot-crashed function) or the network failed. Distinguish the two.
+          try {
+            await fetch(url, { method: 'GET', mode: 'no-cors', cache: 'no-store' });
+            // An opaque reply still arrived: reachable but its health is unknown.
+            return { name, status: 0, ms: Math.round(performance.now() - t0), health: 'warn' as Health };
+          } catch {
+            return { name, status: 0, ms: Math.round(performance.now() - t0), health: 'down' as Health };
+          }
         }
       }));
     },
