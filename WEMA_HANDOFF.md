@@ -128,7 +128,7 @@ Success response — last 10 days, credits and debits, newest first (max 100):
 }
 ```
 
-`direction` is `"Credit"` or `"Debit"`; `amount` is a 2-decimal string; `transactionDate` is UTC in `YYYY-MM-DD HH:MM:SS.sss`. Invalid account → `07`.
+`direction` is `"Credit"` or `"Debit"`; `amount` is a 2-decimal string; `transactionDate` is West Africa Time (WAT, UTC+1) in `YYYY-MM-DD HH:MM:SS.sss`. Invalid account → `07`.
 
 ### 3.4 Get KYC Details — `/wema-kyc-details` *(schema provisional)*
 

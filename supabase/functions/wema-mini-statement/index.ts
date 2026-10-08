@@ -59,13 +59,21 @@ serve(async (req) => {
 
     // Exact item shape confirmed by Wema (Oct 2026):
     // accountNo, bankName, amount ("0.00" string), direction (Credit|Debit),
-    // transactionDate ("YYYY-MM-DD HH:MM:SS.sss", UTC).
+    // transactionDate ("YYYY-MM-DD HH:MM:SS.sss") in West Africa Time
+    // (Africa/Lagos, fixed UTC+1, no DST). Shift the epoch then format with
+    // UTC getters so the result never depends on the server's timezone.
+    const WAT_OFFSET_MS = 60 * 60 * 1000;
+    const formatWat = (ts: string) =>
+      new Date(new Date(ts).getTime() + WAT_OFFSET_MS)
+        .toISOString()
+        .replace("T", " ")
+        .slice(0, 23);
     const rows = (txns ?? []).map((t) => ({
       accountNo: accountNumber,
       bankName: "Wema Bank",
       amount: Number(t.amount ?? 0).toFixed(2),
       direction: t.type === "credit" ? "Credit" : "Debit",
-      transactionDate: new Date(t.created_at).toISOString().replace("T", " ").slice(0, 23),
+      transactionDate: formatWat(t.created_at),
     }));
 
     logVas("wema-mini-statement", requestId, "returned statement", {
