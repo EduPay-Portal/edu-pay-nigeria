@@ -88,7 +88,7 @@ serve(async (req) => {
     const blocked = va.account_status !== "active" || va.is_active === false || va.status !== "active";
     if (blocked) {
       logVas("wema-account-lookup", requestId, "inactive account", { accountNumber });
-      return inactiveAccountResponse({ accountname: accountName, bvn, nin });
+      return inactiveAccountResponse();
     }
 
     logVas("wema-account-lookup", requestId, "resolved", { accountNumber });
