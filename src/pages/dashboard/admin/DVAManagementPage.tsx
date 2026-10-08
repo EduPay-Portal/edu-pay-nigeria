@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { Landmark, RefreshCw, AlertTriangle } from 'lucide-react';
 
-const ACCOUNT_PREFIX = '711';
+// Live prefix issued by Wema Bank (Oct 2026). Test prefix was 711.
+const ACCOUNT_PREFIX = '904';
 
 interface VA {
   id: string;
