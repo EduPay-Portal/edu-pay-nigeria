@@ -37,6 +37,8 @@ export default function TransactionsPage() {
   const [lookupInput, setLookupInput] = useState('');
   const [activeLookup, setActiveLookup] = useState<string | null>(null);
   const [livePolling, setLivePolling] = useState(true);
+  const [selectedTx, setSelectedTx] = useState<any | null>(null);
+
 
   // Single-record lookup with live polling while pending
   const lookupQuery = useQuery({
@@ -420,7 +422,7 @@ export default function TransactionsPage() {
                           {format(new Date(transaction.created_at), 'MMM dd, yyyy HH:mm')}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">View</Button>
+                          <Button variant="ghost" size="sm" onClick={() => setSelectedTx(transaction)}>View</Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -435,6 +437,96 @@ export default function TransactionsPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!selectedTx} onOpenChange={(o) => !o && setSelectedTx(null)}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          {selectedTx && (() => {
+            const p = Array.isArray(selectedTx.profiles) ? selectedTx.profiles[0] : selectedTx.profiles;
+            const payerName = [p?.first_name, p?.last_name].filter(Boolean).join(' ');
+            const providerRef = selectedTx.provider_reference || selectedTx.paystack_reference;
+            const rows: [string, any][] = [
+              ['Internal reference', selectedTx.reference],
+              ['Provider reference', providerRef],
+              ['Session ID', selectedTx.session_id],
+              ['Student / account holder', payerName || '—'],
+              ['Email', p?.email],
+              ['Category', String(selectedTx.category).replace('_', ' ')],
+              ['Provider', selectedTx.provider],
+              ['Channel', selectedTx.payment_channel || selectedTx.payment_method],
+              ['Sender name', selectedTx.payer_account_name],
+              ['Sender account', selectedTx.payer_account_number],
+              ['Sender bank', selectedTx.payer_bank],
+              ['Description', selectedTx.description],
+              ['Created', format(new Date(selectedTx.created_at), 'MMM dd, yyyy HH:mm:ss')],
+            ];
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle>Transaction details</DialogTitle>
+                  <DialogDescription>
+                    {selectedTx.type === 'credit' ? '+' : '-'}₦{Number(selectedTx.amount).toLocaleString('en-NG', { minimumFractionDigits: 2 })} • {selectedTx.status}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 text-sm">
+                  {rows.filter(([, v]) => v).map(([k, v]) => (
+                    <div key={k}>
+                      <div className="text-muted-foreground">{k}</div>
+                      <div className="font-medium break-all">{String(v)}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(providerRef || selectedTx.reference);
+                      toast.success('Reference copied');
+                    }}
+                  >
+                    <Copy className="h-4 w-4 mr-2" /> Copy reference
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setLookupInput(selectedTx.reference);
+                      setActiveLookup(selectedTx.reference);
+                      setLivePolling(true);
+                      setSelectedTx(null);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    <Search className="h-4 w-4 mr-2" /> Inspect in Lookup
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      downloadReceipt({
+                        reference: selectedTx.reference,
+                        providerReference: providerRef,
+                        amount: Number(selectedTx.amount),
+                        status: selectedTx.status,
+                        type: selectedTx.type,
+                        category: selectedTx.category,
+                        paymentMethod: selectedTx.payment_method,
+                        paymentChannel: selectedTx.payment_channel,
+                        provider: selectedTx.provider,
+                        description: selectedTx.description,
+                        createdAt: selectedTx.created_at,
+                        payerName: payerName || null,
+                        payerEmail: p?.email ?? null,
+                      })
+                    }
+                  >
+                    <Download className="h-4 w-4 mr-2" /> Download receipt
+                  </Button>
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
