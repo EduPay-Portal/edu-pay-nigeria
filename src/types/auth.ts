@@ -1,4 +1,4 @@
-export type AppRole = 'student' | 'parent' | 'admin';
+export type AppRole = 'student' | 'parent' | 'admin' | 'principal' | 'bursar' | 'registrar' | 'auditor';
 
 export interface Profile {
   id: string;
