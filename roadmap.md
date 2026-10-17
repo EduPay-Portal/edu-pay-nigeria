@@ -1,5 +1,9 @@
 # ASC-Pay Roadmap
 
+## Production staff permissions
+- [x] Apply the existing staff-role enum and additive permission policies to the production backend; verified all four roles and 18 policies, with existing functions, family/admin policies, and payment/account records unchanged.
+- [ ] Create staff logins — waiting for each person's name, email, and role.
+
 ## Backend migration (Wema signed off 2026-09-30 — cutover in progress)
 - [x] Stage 1: Fix migration scripts, refresh runbook
 - [x] Stage 2: New Supabase project created (ref `gnojeitupgppcioahczj`, London), URL + publishable key received
