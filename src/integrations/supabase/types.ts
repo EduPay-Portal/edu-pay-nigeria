@@ -804,7 +804,14 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "student" | "parent" | "admin"
+      app_role:
+        | "student"
+        | "parent"
+        | "admin"
+        | "principal"
+        | "bursar"
+        | "registrar"
+        | "auditor"
       notification_preference: "sms" | "email" | "both"
       transaction_category:
         | "fee_payment"
@@ -942,7 +949,15 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["student", "parent", "admin"],
+      app_role: [
+        "student",
+        "parent",
+        "admin",
+        "principal",
+        "bursar",
+        "registrar",
+        "auditor",
+      ],
       notification_preference: ["sms", "email", "both"],
       transaction_category: [
         "fee_payment",

@@ -1,3 +1,4 @@
+import { homeForRole } from "@/lib/permissions";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,7 +25,7 @@ const Auth = () => {
   // Handle post-confirmation redirect
   useEffect(() => {
     if (!authLoading && !roleLoading && user && role) {
-      navigate(`/dashboard/${role}`);
+      navigate(homeForRole(role as any));
     }
   }, [user, role, authLoading, roleLoading, navigate]);
 

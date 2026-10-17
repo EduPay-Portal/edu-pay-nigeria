@@ -1,3 +1,4 @@
+import { homeForRole } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -82,7 +83,7 @@ const Index = () => {
 
   useEffect(() => {
     if (!authLoading && !roleLoading && user && role) {
-      navigate(`/dashboard/${role}`);
+      navigate(homeForRole(role as any));
     }
   }, [user, role, authLoading, roleLoading, navigate]);
 

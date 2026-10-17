@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import logo from '@/assets/logo_asc.png';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { ADMIN_PAGE_ROLES, ROLE_LABELS } from '@/lib/permissions';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -45,20 +46,20 @@ const parentItems = [
 ];
 
 const adminItems = [
-  { title: 'Dashboard', url: '/dashboard/admin', icon: LayoutDashboard },
-  { title: 'System Status', url: '/dashboard/admin/status', icon: Activity },
-  { title: 'Students', url: '/dashboard/admin/students', icon: User },
-  { title: 'Parents', url: '/dashboard/admin/parents', icon: User },
-  { title: 'Transactions', url: '/dashboard/admin/transactions', icon: History },
-  { title: 'Bulk Import', url: '/dashboard/admin/bulk-import', icon: Upload },
-  { title: 'Virtual Accounts', url: '/dashboard/admin/dva', icon: Landmark },
-  { title: 'Settlements', url: '/dashboard/admin/settlements', icon: Banknote },
-  { title: 'Payment Simulator', url: '/dashboard/admin/payment-simulator', icon: FlaskConical },
-  { title: 'Webhooks', url: '/dashboard/admin/webhooks', icon: Webhook },
-  { title: 'Reconciliation', url: '/dashboard/admin/reconciliation', icon: GitCompare },
-  { title: 'Audit Log', url: '/dashboard/admin/audit', icon: ShieldCheck },
-  { title: 'Settings', url: '/dashboard/admin/settings', icon: Settings },
-];
+  { title: 'Dashboard', url: '/dashboard/admin', icon: LayoutDashboard, key: 'dashboard' },
+  { title: 'System Status', url: '/dashboard/admin/status', icon: Activity, key: 'status' },
+  { title: 'Students', url: '/dashboard/admin/students', icon: User, key: 'students' },
+  { title: 'Parents', url: '/dashboard/admin/parents', icon: User, key: 'parents' },
+  { title: 'Transactions', url: '/dashboard/admin/transactions', icon: History, key: 'transactions' },
+  { title: 'Bulk Import', url: '/dashboard/admin/bulk-import', icon: Upload, key: 'bulkImport' },
+  { title: 'Virtual Accounts', url: '/dashboard/admin/dva', icon: Landmark, key: 'dva' },
+  { title: 'Settlements', url: '/dashboard/admin/settlements', icon: Banknote, key: 'settlements' },
+  { title: 'Payment Simulator', url: '/dashboard/admin/payment-simulator', icon: FlaskConical, key: 'paymentSimulator' },
+  { title: 'Webhooks', url: '/dashboard/admin/webhooks', icon: Webhook, key: 'webhooks' },
+  { title: 'Reconciliation', url: '/dashboard/admin/reconciliation', icon: GitCompare, key: 'reconciliation' },
+  { title: 'Audit Log', url: '/dashboard/admin/audit', icon: ShieldCheck, key: 'audit' },
+  { title: 'Settings', url: '/dashboard/admin/settings', icon: Settings, key: 'settings' },
+] as const;
 
 export const Sidebar = () => {
   const { state } = useSidebar();
@@ -66,7 +67,11 @@ export const Sidebar = () => {
   const { data: userRole } = useUserRole();
   const navigate = useNavigate();
 
-  const items = userRole === 'student' ? studentItems : userRole === 'parent' ? parentItems : adminItems;
+  const items = userRole === 'student'
+    ? studentItems
+    : userRole === 'parent'
+      ? parentItems
+      : adminItems.filter((i) => !!userRole && (ADMIN_PAGE_ROLES[i.key] as readonly string[]).includes(userRole));
   const isCollapsed = state === 'collapsed';
 
   const handleLogout = async () => {
