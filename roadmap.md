@@ -1,7 +1,7 @@
 # ASC-Pay Roadmap
 
 ## Production staff permissions
-- [ ] Apply the existing staff-role enum and additive permission policies to the production backend; verify existing Wema functions and family permissions are unchanged.
+- [x] Apply the existing staff-role enum and additive permission policies to the production backend; verified all four roles and 18 policies, with existing functions, family/admin policies, and payment/account records unchanged.
 - [ ] Create staff logins — waiting for each person's name, email, and role.
 
 ## Backend migration (Wema signed off 2026-09-30 — cutover in progress)
