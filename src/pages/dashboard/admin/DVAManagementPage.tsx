@@ -8,6 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { Landmark, RefreshCw, AlertTriangle } from 'lucide-react';
+import { useUserRole } from '@/hooks/useUserRole';
+import { ADMIN_PAGE_ROLES } from '@/lib/permissions';
 
 // Live prefix issued by Wema Bank (Oct 2026). Test prefix was 711.
 const ACCOUNT_PREFIX = '904';
@@ -26,6 +28,8 @@ interface VA {
 }
 
 export default function DVAManagementPage() {
+  const { data: userRole } = useUserRole();
+  const canManage = !!userRole && (ADMIN_PAGE_ROLES.dvaActions as readonly string[]).includes(userRole);
   const [accounts, setAccounts] = useState<VA[]>([]);
   const [loading, setLoading] = useState(true);
   const [reissuing, setReissuing] = useState(false);
@@ -93,6 +97,7 @@ export default function DVAManagementPage() {
             </h1>
             <p className="text-muted-foreground">Direct Wema Bank Virtual NUBANs</p>
           </div>
+          {canManage && (
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={handleReissue} disabled={reissuing || retiring}>
               <RefreshCw className={`h-4 w-4 mr-2 ${reissuing ? 'animate-spin' : ''}`} />
@@ -103,6 +108,7 @@ export default function DVAManagementPage() {
               {retiring ? 'Reissuing…' : 'Retire & reissue legacy accounts'}
             </Button>
           </div>
+          )}
         </div>
 
         {legacyAccounts.length > 0 && (
