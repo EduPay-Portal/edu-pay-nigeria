@@ -13,10 +13,12 @@ export const ADMIN_PAGE_ROLES = {
   transactions: ['admin', 'principal', 'bursar', 'auditor'],
   bulkImport: ['admin', 'registrar'],
   dva: ['admin', 'principal', 'bursar', 'registrar', 'auditor'],
+  /** Re-issue / retire virtual account buttons on the DVA page. */
+  dvaActions: ['admin'],
   settlements: ['admin', 'principal', 'bursar', 'auditor'],
   paymentSimulator: ['admin'],
-  webhooks: ['admin', 'auditor'],
-  reconciliation: ['admin', 'principal', 'bursar', 'auditor'],
+  webhooks: ['admin'],
+  reconciliation: ['admin'],
   audit: ['admin', 'principal', 'auditor'],
   settings: ['admin'],
 } satisfies Record<string, AppRole[]>;
