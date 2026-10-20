@@ -230,6 +230,9 @@ export default function AuditLogPage() {
                           <TableCell className="font-mono text-xs">{r.action}</TableCell>
                           <TableCell className="text-xs">
                             {r.actor_id ? (actorMap[r.actor_id] ?? r.actor_id.slice(0, 8)) : '— system'}
+                            {typeof r.metadata?.actor_role === 'string' && (
+                              <Badge variant="outline" className="ml-1">{String(r.metadata.actor_role)}</Badge>
+                            )}
                           </TableCell>
                           <TableCell className="text-xs">
                             {r.entity_type ? `${r.entity_type}/${(r.entity_id ?? '').slice(0, 8)}` : '—'}
