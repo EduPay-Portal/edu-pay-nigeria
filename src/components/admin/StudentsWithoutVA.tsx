@@ -31,7 +31,7 @@ export function StudentsWithoutVA({ canManage, prefix }: { canManage: boolean; p
         supabase.from('virtual_accounts').select('student_id, account_number, status').eq('status', 'active').limit(5000),
       ]);
       if (error) throw error;
-      const has = new Set((vas ?? []).filter(v => v.account_number.startsWith(prefix)).map(v => v.student_id));
+      const has = new Set((vas ?? []).map(v => v.student_id));
       const missing = (students ?? []).filter(s => !has.has(s.user_id));
       const ids = missing.map(m => m.user_id);
       const profiles: Record<string, { first_name: string | null; last_name: string | null }> = {};
@@ -64,7 +64,7 @@ export function StudentsWithoutVA({ canManage, prefix }: { canManage: boolean; p
     let ok = 0, fail = 0;
     for (const id of studentIds.slice(0, 50)) {
       const { data, error } = await supabase.functions.invoke('provision-student-virtual-account', {
-        body: { student_id: id, force: true },
+        body: { student_id: id },
       });
       if (error || data?.error) fail++; else ok++;
     }
@@ -98,7 +98,7 @@ export function StudentsWithoutVA({ canManage, prefix }: { canManage: boolean; p
         ) : q.error ? (
           <p className="text-sm text-destructive">{(q.error as Error).message}</p>
         ) : rows.length === 0 ? (
-          <p className="text-muted-foreground py-6 text-center">Every student has an active {prefix} account.</p>
+          <p className="text-muted-foreground py-6 text-center">Every student has an active virtual account.</p>
         ) : (
           <div className="overflow-x-auto">
             <Table>
