@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { format } from 'date-fns';
 import { downloadReceipt } from '@/lib/receipt';
+import { isSimulatedTransaction, liveCreditTotal } from '@/lib/simulation';
 import { toast } from 'sonner';
 
 async function enrich<T extends { user_id: string }>(rows: T[]) {
@@ -39,6 +40,7 @@ export default function TransactionsPage() {
   const [activeLookup, setActiveLookup] = useState<string | null>(null);
   const [livePolling, setLivePolling] = useState(true);
   const [selectedTx, setSelectedTx] = useState<any | null>(null);
+  const [showSimulations, setShowSimulations] = useState(false);
 
 
   // Single-record lookup with live polling while pending
@@ -91,7 +93,7 @@ export default function TransactionsPage() {
     : null;
 
   // Fetch all transactions
-  const { data: transactions, isLoading } = useQuery({
+  const { data: allTransactions, isLoading } = useQuery({
     queryKey: ['admin-transactions'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -101,20 +103,24 @@ export default function TransactionsPage() {
       if (error) throw error;
       return enrich(data || []);
     },
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
   });
 
-  // Calculate statistics
-  const totalTransactions = transactions?.length || 0;
-  const completedTransactions = transactions?.filter(t => t.status === 'completed').length || 0;
-  const pendingTransactions = transactions?.filter(t => t.status === 'pending').length || 0;
+  // Live money only for stats; simulator rows are viewable via the toggle.
+  const liveTransactions = allTransactions?.filter(t => !isSimulatedTransaction(t)) ?? [];
+  const simulatedCount = (allTransactions?.length ?? 0) - liveTransactions.length;
+  const transactions = showSimulations ? allTransactions : liveTransactions;
 
-  const totalCredits = transactions
-    ?.filter(t => t.type === 'credit' && t.status === 'completed')
-    .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+  const totalTransactions = liveTransactions.length;
+  const completedTransactions = liveTransactions.filter(t => t.status === 'completed').length;
+  const pendingTransactions = liveTransactions.filter(t => t.status === 'pending').length;
 
-  const totalDebits = transactions
-    ?.filter(t => t.type === 'debit' && t.status === 'completed')
-    .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+  const totalCredits = liveCreditTotal(liveTransactions);
+
+  const totalDebits = liveTransactions
+    .filter(t => t.type === 'debit' && t.status === 'completed')
+    .reduce((sum, t) => sum + Number(t.amount), 0);
 
   // Filter transactions based on search
   const filteredTransactions = transactions?.filter(transaction => {
@@ -339,9 +345,13 @@ export default function TransactionsPage() {
               <CardDescription>Complete transaction history</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
+              <Button
+                variant={showSimulations ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowSimulations(v => !v)}
+              >
                 <Filter className="h-4 w-4 mr-2" />
-                Filter
+                {showSimulations ? 'Hide simulations' : `Show simulations (${simulatedCount})`}
               </Button>
               <Button variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-2" />
