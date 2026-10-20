@@ -34,6 +34,10 @@ Make the admin dashboards show what actually came in, keep simulator payments se
    - Check that principal, bursar, registrar and auditor are blocked from those pages, including when they type the page address directly, and don't see those buttons.
    - Check on the server that only admins can run re-issue / retire actions.
 
+8. **Audit log of privileged actions**
+   - Every admin/superadmin action (issue VA, re-issue, retire legacy, block/unblock, reprocess webhook, run simulator, create staff, resolve reconciliation) is recorded with who did it (name, email, role), what, which student/account, and the exact time (Lagos time).
+   - Audit Log page shows these with filters by person, action and date; records can't be edited or deleted.
+
 ## Not changing
 - Wema endpoints (lookup, notification, KYC, mini statement, block), tokens, 904 prefix, collection account.
 - Existing student/parent access.
@@ -52,3 +56,4 @@ Make the admin dashboards show what actually came in, keep simulator payments se
 - Add `requireRole(['admin'])` in `dva-reissue` and `dva-retire-legacy`; deploy those two functions only.
 - Add tests: TEST_ exclusion from live summary; non-admin rejected by reissue functions.
 - Access tests (Vitest + Testing Library, set up if missing): mock `useUserRole` per role, render routes through `ProtectedRoute` via `MemoryRouter` at `/dashboard/admin/webhooks`, `/reconciliation`, `/simulator`, `/dva`; assert admin renders and principal/bursar/registrar/auditor redirect; assert `dvaActions` buttons visible only for admin; unit test `ADMIN_PAGE_ROLES` entries. Deno tests for `dva-reissue`/`dva-retire-legacy` returning 403 for non-admin roles.
+- Audit: reuse existing `audit_logs` table (actor_id, action, entity_type/id, before/after, metadata, created_at). Write entries server-side from each privileged edge function via the shared `_shared/audit.ts` helper (actor from verified JWT, role in metadata), never from the browser. Keep inserts/updates/deletes denied to clients; reads allowed to admin and auditor. `AuditLogPage` joins actor names client-side and adds filters. Deno test asserts an audit row with the caller's id is written on re-issue.
