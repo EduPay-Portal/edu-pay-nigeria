@@ -51,3 +51,4 @@ Make the admin dashboards show what actually came in, keep simulator payments se
 - Missing-VA list: separate queries on `student_profiles`, `profiles`, `virtual_accounts`, `virtual_account_provisioning_jobs`, merged client-side; issuance calls existing `provision-student-virtual-account` / `dva-create` functions.
 - Add `requireRole(['admin'])` in `dva-reissue` and `dva-retire-legacy`; deploy those two functions only.
 - Add tests: TEST_ exclusion from live summary; non-admin rejected by reissue functions.
+- Access tests (Vitest + Testing Library, set up if missing): mock `useUserRole` per role, render routes through `ProtectedRoute` via `MemoryRouter` at `/dashboard/admin/webhooks`, `/reconciliation`, `/simulator`, `/dva`; assert admin renders and principal/bursar/registrar/auditor redirect; assert `dvaActions` buttons visible only for admin; unit test `ADMIN_PAGE_ROLES` entries. Deno tests for `dva-reissue`/`dva-retire-legacy` returning 403 for non-admin roles.
