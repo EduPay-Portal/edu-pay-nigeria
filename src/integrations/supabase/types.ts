@@ -753,6 +753,17 @@ export type Database = {
           unique_batches: number
         }[]
       }
+      get_live_inflow_summary: {
+        Args: { _since?: string }
+        Returns: {
+          live_amount: number
+          live_count: number
+          simulated_amount: number
+          simulated_count: number
+          today_amount: number
+          today_count: number
+        }[]
+      }
       get_orphaned_transactions: {
         Args: never
         Returns: {
@@ -793,6 +804,15 @@ export type Database = {
           paystack_reference: string
         }[]
       }
+      is_simulated_transaction: {
+        Args: {
+          _metadata: Json
+          _paystack_reference: string
+          _reference: string
+        }
+        Returns: boolean
+      }
+      is_staff: { Args: { _uid: string }; Returns: boolean }
       mark_staging_processed: {
         Args: {
           error_msg?: string

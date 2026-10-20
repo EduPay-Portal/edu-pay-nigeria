@@ -15,6 +15,13 @@
       "when": 1792251878518,
       "tag": "0001_staff_role_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792529075298,
+      "tag": "0002_live_inflow_and_staff_stats",
+      "breakpoints": true
     }
   ]
 }
