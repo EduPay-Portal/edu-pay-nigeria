@@ -184,6 +184,17 @@ export default function WebhooksPage() {
                 <SelectItem value="error">Errors</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={sourceFilter} onValueChange={(v: any) => setSourceFilter(v)}>
+              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Source" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All sources</SelectItem>
+                <SelectItem value="wema">Wema</SelectItem>
+                <SelectItem value="paystack">Card (Paystack)</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant={showSimulations ? 'default' : 'outline'} onClick={() => setShowSimulations(v => !v)}>
+              {showSimulations ? 'Hide simulations' : `Show simulations (${simCount})`}
+            </Button>
             <Button
               variant="outline"
               onClick={() => queryClient.invalidateQueries({ queryKey: ['webhook-events'] })}
@@ -219,7 +230,11 @@ export default function WebhooksPage() {
                   <TableRow key={event.id}>
                     <TableCell className="font-mono text-sm">{event.paystack_reference}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{event.event_type}</Badge>
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant="outline">{event.event_type}</Badge>
+                        <Badge variant="secondary">{event.source === 'wema' ? 'Wema' : 'Card'}</Badge>
+                        {isSimEvent(event) && <Badge variant="outline">Simulation</Badge>}
+                      </div>
                     </TableCell>
                     <TableCell>{getStatusBadge(event)}</TableCell>
                     <TableCell>
