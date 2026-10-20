@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 
 interface WebhookEvent {
   id: string;
+  source: 'wema' | 'paystack';
   event_type: string;
   paystack_reference: string;
   payload: any;
@@ -24,36 +25,49 @@ interface WebhookEvent {
   created_at: string;
 }
 
+const isSimEvent = (e: WebhookEvent) => (e.paystack_reference ?? '').startsWith('TEST_');
+
 export default function WebhooksPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'processed' | 'pending' | 'error'>('all');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'wema' | 'paystack'>('all');
+  const [showSimulations, setShowSimulations] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<WebhookEvent | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch webhook events
-  const { data: events, isLoading } = useQuery({
-    queryKey: ['webhook-events', filterStatus],
+  // Wema notifications + card (Paystack) events, merged client-side.
+  const { data: allEvents, isLoading } = useQuery({
+    queryKey: ['webhook-events'],
     queryFn: async () => {
-      let query = supabase
-        .from('paystack_webhook_events')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (filterStatus === 'processed') {
-        query = query.eq('processed', true).is('error_message', null);
-      } else if (filterStatus === 'pending') {
-        query = query.eq('processed', false).is('error_message', null);
-      } else if (filterStatus === 'error') {
-        query = query.not('error_message', 'is', null);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as WebhookEvent[];
+      const [wema, card] = await Promise.all([
+        supabase.from('webhook_events')
+          .select('id, provider, event_type, provider_reference, payload, signature_valid, processed, error_message, created_at')
+          .order('created_at', { ascending: false }).limit(500),
+        supabase.from('paystack_webhook_events')
+          .select('*').order('created_at', { ascending: false }).limit(500),
+      ]);
+      if (wema.error && card.error) throw wema.error;
+      const a: WebhookEvent[] = (wema.data ?? []).map((w: any) => ({
+        id: w.id, source: 'wema', event_type: w.event_type, paystack_reference: w.provider_reference ?? '',
+        payload: w.payload, signature_valid: w.signature_valid, processed: w.processed,
+        error_message: w.error_message, created_at: w.created_at,
+      }));
+      const b: WebhookEvent[] = (card.data ?? []).map((p: any) => ({ ...p, source: 'paystack' }));
+      return [...a, ...b].sort((x, y) => y.created_at.localeCompare(x.created_at));
     },
-    refetchInterval: 10000, // Auto-refresh every 10 seconds
+    refetchInterval: 10000,
   });
+
+  const events = allEvents?.filter(e =>
+    (showSimulations || !isSimEvent(e)) &&
+    (sourceFilter === 'all' || e.source === sourceFilter) &&
+    (filterStatus === 'all' ||
+      (filterStatus === 'processed' && e.processed && !e.error_message) ||
+      (filterStatus === 'pending' && !e.processed && !e.error_message) ||
+      (filterStatus === 'error' && !!e.error_message))
+  );
+  const simCount = allEvents?.filter(isSimEvent).length ?? 0;
 
   // Reprocess webhook mutation
   const reprocessMutation = useMutation({
@@ -74,7 +88,7 @@ export default function WebhooksPage() {
   });
 
   const filteredEvents = events?.filter((event) =>
-    event.paystack_reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (event.paystack_reference ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     event.event_type.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
