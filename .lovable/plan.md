@@ -29,6 +29,11 @@ Make the admin dashboards show what actually came in, keep simulator payments se
 6. **Security tightening**
    - Re-issue and retire-legacy actions also checked on the server for admin role (today only the buttons are hidden).
 
+7. **Automated access tests**
+   - Check that admin and superadmin can open the Webhooks, Reconciliation and Payment Simulator pages and see the Re-issue / Retire buttons.
+   - Check that principal, bursar, registrar and auditor are blocked from those pages, including when they type the page address directly, and don't see those buttons.
+   - Check on the server that only admins can run re-issue / retire actions.
+
 ## Not changing
 - Wema endpoints (lookup, notification, KYC, mini statement, block), tokens, 904 prefix, collection account.
 - Existing student/parent access.
@@ -46,3 +51,4 @@ Make the admin dashboards show what actually came in, keep simulator payments se
 - Missing-VA list: separate queries on `student_profiles`, `profiles`, `virtual_accounts`, `virtual_account_provisioning_jobs`, merged client-side; issuance calls existing `provision-student-virtual-account` / `dva-create` functions.
 - Add `requireRole(['admin'])` in `dva-reissue` and `dva-retire-legacy`; deploy those two functions only.
 - Add tests: TEST_ exclusion from live summary; non-admin rejected by reissue functions.
+- Access tests (Vitest + Testing Library, set up if missing): mock `useUserRole` per role, render routes through `ProtectedRoute` via `MemoryRouter` at `/dashboard/admin/webhooks`, `/reconciliation`, `/simulator`, `/dva`; assert admin renders and principal/bursar/registrar/auditor redirect; assert `dvaActions` buttons visible only for admin; unit test `ADMIN_PAGE_ROLES` entries. Deno tests for `dva-reissue`/`dva-retire-legacy` returning 403 for non-admin roles.
