@@ -29,6 +29,11 @@ Make the admin dashboards show what actually came in, keep simulator payments se
 6. **Security tightening**
    - Re-issue and retire-legacy actions also checked on the server for admin role (today only the buttons are hidden).
 
+7. **Automated access tests**
+   - Check that admin and superadmin can open the Webhooks, Reconciliation and Payment Simulator pages and see the Re-issue / Retire buttons.
+   - Check that principal, bursar, registrar and auditor are blocked from those pages, including when they type the page address directly, and don't see those buttons.
+   - Check on the server that only admins can run re-issue / retire actions.
+
 ## Not changing
 - Wema endpoints (lookup, notification, KYC, mini statement, block), tokens, 904 prefix, collection account.
 - Existing student/parent access.
