@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Landmark, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 import { ADMIN_PAGE_ROLES } from '@/lib/permissions';
+import { StudentsWithoutVA } from '@/components/admin/StudentsWithoutVA';
 
 // Live prefix issued by Wema Bank (Oct 2026). Test prefix was 711.
 const ACCOUNT_PREFIX = '904';
@@ -143,6 +144,8 @@ export default function DVAManagementPage() {
             <CardContent className="text-3xl font-bold">{accounts.length}</CardContent>
           </Card>
         </div>
+
+        <StudentsWithoutVA canManage={canManage} prefix={ACCOUNT_PREFIX} />
 
         <Card>
           <CardHeader>
