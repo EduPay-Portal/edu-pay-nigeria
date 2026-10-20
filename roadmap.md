@@ -24,3 +24,13 @@
 - Production base URL: `https://gnojeitupgppcioahczj.supabase.co/functions/v1`
 - Old Lovable Cloud backend (`xspfcdxymobmiksiudfo`) stays live through the 48h dual-run window — rollback path.
 - Static 711 virtual accounts remain the agreed direction.
+
+## Data sync & access (2026-10-20)
+- [x] Settlements: live inflow panel (simulator excluded), auto-refresh
+- [x] Transactions/Webhooks: simulations hidden by default, Wema + card events merged
+- [x] Student stats for all staff roles
+- [x] Students without a virtual account + Issue VA (admin only)
+- [x] Access tests (admin vs other staff, direct URL) and simulation tests
+- [x] Audit log shows who (with role) and when for privileged actions
+- [ ] Apply database update to live backend — needs a short-lived access token
+- [ ] User redeploys on Vercel
