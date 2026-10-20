@@ -32,5 +32,5 @@
 - [x] Students without a virtual account + Issue VA (admin only)
 - [x] Access tests (admin vs other staff, direct URL) and simulation tests
 - [x] Audit log shows who (with role) and when for privileged actions
-- [ ] Apply database update to live backend — needs a short-lived access token
+- [x] Apply database update to live backend — 0002 applied atomically on 2026-10-20; 16 students, ₦6,550 unflagged inflow and ₦55,000 simulator inflow verified across staff roles; students/parents denied; payment/account/wallet/role state unchanged. Existing live reissue/retire functions already enforce admin checks and write audit entries. All 34 frontend access/simulation tests passed; live UI verification awaits Vercel redeploy. Unflagged inflow is not proof that every remaining payment is genuine.
 - [ ] User redeploys on Vercel
